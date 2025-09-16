@@ -13,7 +13,7 @@ const login = async (req, res) => {
 
     const result = await authService.login(email, password);
 
-  res.status(200).json({
+    res.status(200).json({
       message: 'Login exitoso',
       token: result.token
     });
@@ -27,7 +27,7 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, role_id } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -36,12 +36,12 @@ const register = async (req, res) => {
       });
     }
 
-    const user = await authService.register(email, password, role_id);
+    const result = await authService.register(email, password);
 
     res.status(201).json({
       success: true,
       message: 'Usuario registrado exitosamente',
-      data: user
+      token: result.token
     });
   } catch (error) {
     res.status(400).json({
@@ -54,7 +54,7 @@ const register = async (req, res) => {
 const logout = async (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Logout exitoso, token eliminsdo.'
+    message: 'Logout exitoso, token eliminado.'
   });
 };
 
