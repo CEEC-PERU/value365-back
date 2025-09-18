@@ -1,31 +1,23 @@
-// value365-backend/src/modules/templates/templates.controller.js
 const templateService = require('./templates.service');
 
-/**
- * [POST] /api/v1/templates
- * Registra una nueva plantilla.
- */
 const createTemplate = async (req, res, next) => {
     try {
         const { nombre, descripcion, datos_plantilla, categoria, imagen_preview } = req.body;
         
-        // Datos del usuario obtenidos del JWT (req.user)
         const creadoPor = req.user.user_id; 
-        const empresaId = req.user.empresa_id; // Obtenido del token
+        const empresaId = req.user.empresa_id; 
 
-        // Validaciones de entrada
-        if (!nombre || !datos_plantilla) {
+        if (!nombre || !datos_plantilla || !creadoPor || !empresaId) {
             return res.status(400).json({
                 success: false,
-                message: 'El nombre y los datos_plantilla son campos obligatorios.'
+                message: 'Faltan campos obligatorios: nombre, datos_plantilla, usuario y empresa son requeridos.'
             });
         }
         
-        // El campo datos_plantilla debe ser un objeto JSON para PostgreSQL
         if (typeof datos_plantilla !== 'object' || datos_plantilla === null) {
             return res.status(400).json({
                 success: false,
-                message: 'datos_plantilla debe ser un objeto JSON válido.'
+                message: 'El campo datos_plantilla debe ser un objeto JSON válido.'
             });
         }
 
@@ -41,7 +33,6 @@ const createTemplate = async (req, res, next) => {
 
         const newTemplate = await templateService.createTemplate(data);
 
-        // HTTP 201 Created
         res.status(201).json({
             success: true,
             message: 'Plantilla registrada exitosamente.',
@@ -52,18 +43,20 @@ const createTemplate = async (req, res, next) => {
     }
 };
 
-/**
- * [GET] /api/v1/templates
- * Obtiene todas las plantillas disponibles.
- */
+
 const getTemplates = async (req, res, next) => {
     try {
-        // Obtenemos el ID de empresa para filtrar plantillas
         const empresaId = req.user.empresa_id; 
+
+        if (!empresaId) {
+             return res.status(400).json({
+                success: false,
+                message: 'No se pudo identificar la empresa del usuario.'
+            });
+        }
 
         const templates = await templateService.getAvailableTemplates(empresaId);
         
-        // HTTP 200 OK
         res.status(200).json({
             success: true,
             count: templates.length,

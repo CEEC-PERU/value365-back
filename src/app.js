@@ -37,12 +37,18 @@ try {
   console.error('Error cargando authRoutes:', error.message);
 }
 
-// ✨ Agregamos las rutas de templates aquí para que sean accesibles
 try {
   const templatesRoutes = require('./modules/templates/templates.routes');
   app.use('/api/v1', templatesRoutes);
 } catch (error) {
   console.error('Error cargando templatesRoutes:', error.message);
+}
+
+try {
+  const campaignsRoutes = require('./modules/campaigns/campaigns.routes');
+  app.use('/api/v1/campaigns', campaignsRoutes); 
+} catch (error) {
+  console.error('Error cargando campaignsRoutes:', error.message);
 }
 
 app.use(errorHandler);

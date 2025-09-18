@@ -1,10 +1,7 @@
-// value365-backend/src/modules/templates/templates.model.js
 const pool = require('../../config/db'); 
 
 class TemplateModel {
-    /**
-     * Inserta una nueva plantilla en la tabla 'templates'.
-     */
+
     async insert(empresaId, nombre, descripcion, datosPlantilla, creadoPor, categoria, imagenPreview = null) {
         const query = `
             INSERT INTO templates (
@@ -17,9 +14,7 @@ class TemplateModel {
         return result.rows[0];
     }
 
-    /**
-     * Obtiene todas las plantillas disponibles para una empresa (propias + públicas).
-     */
+  
     async findAllAvailable(empresaId) {
         const query = `
             SELECT 
