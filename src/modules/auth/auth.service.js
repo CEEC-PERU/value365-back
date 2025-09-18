@@ -44,7 +44,7 @@ class AuthService {
     }
   }
 
-  async register(email, password, roleId = 2) {
+  async register(email, password, roleId = 1) {
     try {
       const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
       if (existingUser.rows.length > 0) {

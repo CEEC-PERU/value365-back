@@ -4,6 +4,7 @@ const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
+
 const allowedOrigins = [
   'https://encuestas-olive.vercel.app',
   'http://localhost:3000',
@@ -34,6 +35,14 @@ try {
   app.use('/api/auth', authRoutes);
 } catch (error) {
   console.error('Error cargando authRoutes:', error.message);
+}
+
+// ✨ Agregamos las rutas de templates aquí para que sean accesibles
+try {
+  const templatesRoutes = require('./modules/templates/templates.routes');
+  app.use('/api/v1', templatesRoutes);
+} catch (error) {
+  console.error('Error cargando templatesRoutes:', error.message);
 }
 
 app.use(errorHandler);

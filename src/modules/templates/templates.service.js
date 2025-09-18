@@ -1,159 +1,53 @@
-const pool = require('../../config/db');
+const templateModel = require('./templates.model');
 
-class TemplatesService {
-  async create(templateData, userId) {
-    try {
-      const {
-        empresa_id = 2, 
-        nombre,
-        descripcion,
-        categoria,
-        datos_plantilla,
-        imagen_preview,
-        es_predeterminada = false,
-        es_publica = false
-      } = templateData;
+class TemplateService {
+    /**
+     * Crea y registra una nueva plantilla.
+     */
+    async createTemplate(data) {
+        try {
+            // Desestructuración de datos con validación mínima
+            const { empresaId, nombre, descripcion, datos_plantilla, creadoPor, categoria, imagen_preview } = data;
 
-      const query = `
-        INSERT INTO templates (
-          empresa_id, nombre, descripcion, categoria, datos_plantilla,
-          imagen_preview, es_predeterminada, es_publica, creado_por
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING *
-      `;
+            if (!nombre || !datos_plantilla || !creadoPor || !empresaId) {
+                 throw new Error("Faltan datos esenciales (nombre, datos_plantilla, usuario o empresa).");
+            }
+            
+            // Llama al modelo para la inserción
+            const newTemplate = await templateModel.insert(
+                empresaId, 
+                nombre, 
+                descripcion, 
+                datos_plantilla, 
+                creadoPor,
+                categoria || 'General', // Valor por defecto si no se proporciona
+                imagen_preview
+            );
+            return newTemplate;
 
-      const values = [
-        empresa_id,
-        nombre,
-        descripcion,
-        categoria,
-        datos_plantilla,
-        imagen_preview,
-        es_predeterminada,
-        es_publica,
-        userId
-      ];
-
-      const result = await pool.query(query, values);
-      return result.rows[0];
-    } catch (error) {
-      throw error;
+        } catch (error) {
+            console.error("Error en TemplateService.createTemplate:", error.message);
+            throw new Error(`Fallo al registrar la plantilla: ${error.message}`);
+        }
     }
-  }
 
-  async getAll(empresaId = 2) {
-    try {
-      const query = `
-        SELECT t.*, u.username as creado_por_nombre
-        FROM templates t
-        LEFT JOIN users u ON t.creado_por = u.id
-        WHERE t.empresa_id = $1 OR t.es_publica = true
-        ORDER BY t.fecha_creacion DESC
-      `;
+    /**
+     * Obtiene todas las plantillas disponibles para una empresa.
+     */
+    async getAvailableTemplates(empresaId) {
+        try {
+            if (!empresaId) {
+                 throw new Error("ID de empresa es requerido para obtener plantillas.");
+            }
+            
+            const templates = await templateModel.findAllAvailable(empresaId);
+            return templates;
 
-      const result = await pool.query(query, [empresaId]);
-      return result.rows;
-    } catch (error) {
-      throw error;
+        } catch (error) {
+            console.error("Error en TemplateService.getAvailableTemplates:", error.message);
+            throw new Error('No se pudieron obtener las plantillas.');
+        }
     }
-  }
-
-  async getById(id) {
-    try {
-      const query = `
-        SELECT t.*, u.username as creado_por_nombre
-        FROM templates t
-        LEFT JOIN users u ON t.creado_por = u.id
-        WHERE t.id = $1
-      `;
-
-      const result = await pool.query(query, [id]);
-      if (result.rows.length === 0) {
-        throw new Error('Template no encontrado');
-      }
-      return result.rows[0];
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async update(id, templateData, userId) {
-    try {
-      const {
-        nombre,
-        descripcion,
-        categoria,
-        datos_plantilla,
-        imagen_preview,
-        es_predeterminada,
-        es_publica
-      } = templateData;
-
-      const query = `
-        UPDATE templates 
-        SET 
-          nombre = COALESCE($2, nombre),
-          descripcion = COALESCE($3, descripcion),
-          categoria = COALESCE($4, categoria),
-          datos_plantilla = COALESCE($5, datos_plantilla),
-          imagen_preview = COALESCE($6, imagen_preview),
-          es_predeterminada = COALESCE($7, es_predeterminada),
-          es_publica = COALESCE($8, es_publica),
-          fecha_actualizacion = CURRENT_TIMESTAMP
-        WHERE id = $1 AND creado_por = $9
-        RETURNING *
-      `;
-
-      const values = [
-        id, nombre, descripcion, categoria, datos_plantilla,
-        imagen_preview, es_predeterminada, es_publica, userId
-      ];
-
-      const result = await pool.query(query, values);
-      if (result.rows.length === 0) {
-        throw new Error('Template no encontrado o sin permisos');
-      }
-      return result.rows[0];
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async delete(id, userId) {
-    try {
-      const query = `
-        DELETE FROM templates 
-        WHERE id = $1 AND creado_por = $2
-        RETURNING *
-      `;
-
-      const result = await pool.query(query, [id, userId]);
-      if (result.rows.length === 0) {
-        throw new Error('Template no encontrado o sin permisos');
-      }
-      return result.rows[0];
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async incrementarUso(id) {
-    try {
-      const query = `
-        UPDATE templates 
-        SET veces_usado = veces_usado + 1
-        WHERE id = $1
-        RETURNING *
-      `;
-
-      const result = await pool.query(query, [id]);
-      return result.rows[0];
-    } catch (error) {
-      throw error;
-    }
-  }
 }
 
-module.exports = new TemplatesService();
-
+module.exports = new TemplateService();

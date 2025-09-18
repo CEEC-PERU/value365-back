@@ -1,128 +1,80 @@
-const templatesService = require('./templates.service');
+// value365-backend/src/modules/templates/templates.controller.js
+const templateService = require('./templates.service');
 
-const create = async (req, res) => {
-  try {
-    const templateData = req.body;
-    const userId = req.user.user_id; 
+/**
+ * [POST] /api/v1/templates
+ * Registra una nueva plantilla.
+ */
+const createTemplate = async (req, res, next) => {
+    try {
+        const { nombre, descripcion, datos_plantilla, categoria, imagen_preview } = req.body;
+        
+        // Datos del usuario obtenidos del JWT (req.user)
+        const creadoPor = req.user.user_id; 
+        const empresaId = req.user.empresa_id; // Obtenido del token
 
-    if (!templateData.nombre) {
-      return res.status(400).json({
-        success: false,
-        message: 'El nombre del template es requerido'
-      });
+        // Validaciones de entrada
+        if (!nombre || !datos_plantilla) {
+            return res.status(400).json({
+                success: false,
+                message: 'El nombre y los datos_plantilla son campos obligatorios.'
+            });
+        }
+        
+        // El campo datos_plantilla debe ser un objeto JSON para PostgreSQL
+        if (typeof datos_plantilla !== 'object' || datos_plantilla === null) {
+            return res.status(400).json({
+                success: false,
+                message: 'datos_plantilla debe ser un objeto JSON válido.'
+            });
+        }
+
+        const data = {
+            empresaId,
+            nombre,
+            descripcion,
+            datos_plantilla,
+            creadoPor,
+            categoria,
+            imagen_preview
+        };
+
+        const newTemplate = await templateService.createTemplate(data);
+
+        // HTTP 201 Created
+        res.status(201).json({
+            success: true,
+            message: 'Plantilla registrada exitosamente.',
+            template: newTemplate
+        });
+    } catch (error) {
+        next(error); 
     }
-
-    const template = await templatesService.create(templateData, userId);
-
-    res.status(201).json({
-      success: true,
-      message: 'Template creado exitosamente',
-      data: template
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
 };
 
-const getAll = async (req, res) => {
-  try {
-    const empresaId = req.query.empresa_id || 2;
-    const templates = await templatesService.getAll(empresaId);
+/**
+ * [GET] /api/v1/templates
+ * Obtiene todas las plantillas disponibles.
+ */
+const getTemplates = async (req, res, next) => {
+    try {
+        // Obtenemos el ID de empresa para filtrar plantillas
+        const empresaId = req.user.empresa_id; 
 
-    res.status(200).json({
-      success: true,
-      data: templates
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-const getById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const template = await templatesService.getById(id);
-
-    res.status(200).json({
-      success: true,
-      data: template
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-const update = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const templateData = req.body;
-    const userId = req.user.user_id;
-
-    const template = await templatesService.update(id, templateData, userId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Template actualizado exitosamente',
-      data: template
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-const deleteTemplate = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.user_id;
-
-    await templatesService.delete(id, userId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Template eliminado exitosamente'
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-const incrementarUso = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const template = await templatesService.incrementarUso(id);
-
-    res.status(200).json({
-      success: true,
-      data: template
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
+        const templates = await templateService.getAvailableTemplates(empresaId);
+        
+        // HTTP 200 OK
+        res.status(200).json({
+            success: true,
+            count: templates.length,
+            templates: templates
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
 module.exports = {
-  create,
-  getAll,
-  getById,
-  update,
-  delete: deleteTemplate,
-  incrementarUso
+    createTemplate,
+    getTemplates
 };
