@@ -51,6 +51,22 @@ try {
   console.error('Error cargando campaignsRoutes:', error.message);
 }
 
+
+try {
+  const userRoutes = require('./modules/users/users.routes'); 
+  app.use('/api/users', userRoutes); 
+} catch (error) {
+  console.error('Error cargando usersRoutes:', error.message);
+}
+
+
+try {
+  const messagingRoutes = require('./modules/messaging/messaging.routes');
+  app.use('/api/messaging', messagingRoutes);
+} catch (error) {
+  console.error('Error cargando messagingRoutes:', error.message);
+}
+
 app.use(errorHandler);
 
 module.exports = app;
