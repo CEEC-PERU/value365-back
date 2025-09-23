@@ -1,17 +1,10 @@
 const axios = require('axios');
 
-const sendSms = async ({ recipient, messageBody, programmedDate, flashMessage }) => {
+const sendSms = async ({ recipient, messageBody }) => {
   const payload = {
     recipient,
     messageBody,
   };
-
-  if (programmedDate) {
-    payload.programmedDate = programmedDate;
-  }
-  if (flashMessage !== undefined) {
-    payload.flashMessage = flashMessage;
-  }
 
   try {
     const response = await axios.post(
@@ -24,10 +17,11 @@ const sendSms = async ({ recipient, messageBody, programmedDate, flashMessage })
         },
       }
     );
+    console.log(`SMS enviado a ${recipient}`);
     return response.data;
   } catch (error) {
-    console.error('Error al enviar SMS:', error.response ? error.response.data : error.message);
-    throw new Error('El servicio de SMS no está disponible.');
+    console.error(`Error al enviar SMS a ${recipient}:`, error.response ? error.response.data : error.message);
+    throw new Error(`El servicio de SMS no está disponible para ${recipient}.`);
   }
 };
 
