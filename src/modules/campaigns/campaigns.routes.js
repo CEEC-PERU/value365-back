@@ -1,18 +1,22 @@
+module.exports = router;
+
 const express = require('express');
 const router = express.Router();
 const campaignsController = require('./campaigns.controller');
 const jwtMiddleware = require('../auth/jwt.middleware');
-
+const formRoutes = require('../forms/forms.routes'); 
 router.use(jwtMiddleware);
 
-router.post('/', campaignsController.createCampaign);
+router.route('/')
+    .get(campaignsController.getCampaigns)
+    .post(campaignsController.createCampaign);
 
-router.get('/', campaignsController.getCampaigns);
+router.route('/:id')
+    .get(campaignsController.getCampaignById)
+    .put(campaignsController.updateCampaign)
+    .delete(campaignsController.deleteCampaign);
 
-router.get('/:id', campaignsController.getCampaignById);
 
-router.put('/:id', campaignsController.updateCampaign);
-
-router.delete('/:id', campaignsController.deleteCampaign);
+router.use('/:campaignId/forms', formRoutes);
 
 module.exports = router;

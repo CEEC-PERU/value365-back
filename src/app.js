@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -25,6 +26,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'modules/uploads')));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Value365 Backend API' });
@@ -36,6 +38,15 @@ try {
 } catch (error) {
   console.error('Error cargando authRoutes:', error.message);
 }
+
+
+try {
+  const mediaRoutes = require('./modules/media/media.routes');
+  app.use('/api/media', mediaRoutes);
+} catch (error) {
+  console.error('Error cargando mediaRoutes:', error.message);
+}
+
 
 try {
   const templatesRoutes = require('./modules/templates/templates.routes');
