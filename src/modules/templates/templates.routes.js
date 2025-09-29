@@ -3,8 +3,10 @@ const router = express.Router();
 const templatesController = require('./templates.controller');
 const jwtMiddleware = require('../auth/jwt.middleware');
 
-router.post('/templates', jwtMiddleware, templatesController.createTemplate);
+router.use(jwtMiddleware);
 
-router.get('/templates', jwtMiddleware, templatesController.getTemplates);
+router.route('/')
+    .post(templatesController.createTemplate)
+    .get(templatesController.getTemplates);
 
 module.exports = router;

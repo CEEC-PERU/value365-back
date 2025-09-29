@@ -1,25 +1,45 @@
+const pool = require('../../config/db');
 const QuestionModel = require('./questions.model');
+const QuestionOptionsModel = require('../question_options/question_options.model');
 const createError = require('http-errors');
 
 const QuestionService = {
-    createQuestion: async (campaignId, questionData) => {
-        // Lógica para asignar el orden de la pregunta
-        const questionCount = await QuestionModel.countByCampaignId(campaignId);
-        questionData.posicion_orden = questionCount + 1;
-        questionData.campaign_id = campaignId;
+    createQuestion: async (formId, questionData) => {
+        const client = await pool.connect();
+        try {
 
-        // Aseguramos que los campos JSON existan
-        if (!questionData.configuraciones) questionData.configuraciones = {};
-        if (!questionData.validaciones) questionData.validaciones = {};
+            questionData.form_id = formId;
+            const questionCount = await QuestionModel.countByFormId(formId, client);
+            questionData.posicion_orden = questionCount + 1;
 
-        return QuestionModel.create(questionData);
+            if (!questionData.configuraciones) questionData.configuraciones = {};
+            if (!questionData.validaciones) questionData.validaciones = {};
+
+            const options = questionData.options;
+            delete questionData.options;
+
+            const newQuestion = await QuestionModel.create(questionData, client);
+
+            let createdOptions = [];
+            if (options && Array.isArray(options) && options.length > 0) {
+                createdOptions = await QuestionOptionsModel.bulkCreate(newQuestion.id, options, client);
+            }
+
+            return { ...newQuestion, options: createdOptions };
+
+        } catch (error) {
+            console.error(error);
+            throw createError(500, 'No se pudo crear la pregunta en la base de datos.');
+        } finally {
+            client.release();
+        }
     },
 
-    getQuestionsByCampaign: async (campaignId) => {
-        return QuestionModel.findByCampaignId(campaignId);
+    async getQuestionsByForm(formId) {
+        return QuestionModel.findByFormId(formId);
     },
 
-    updateQuestion: async (id, dataToUpdate) => {
+    async updateQuestion(id, dataToUpdate) {
         const question = await QuestionModel.findById(id);
         if (!question) {
             throw createError(404, 'Pregunta no encontrada.');
@@ -27,7 +47,7 @@ const QuestionService = {
         return QuestionModel.update(id, dataToUpdate);
     },
 
-    deleteQuestion: async (id) => {
+    async deleteQuestion(id) {
         const deletedQuestion = await QuestionModel.delete(id);
         if (!deletedQuestion) {
             throw createError(404, 'Pregunta no encontrada.');
@@ -37,3 +57,4 @@ const QuestionService = {
 };
 
 module.exports = QuestionService;
+

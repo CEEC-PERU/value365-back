@@ -2,20 +2,21 @@ const QuestionService = require('./questions.service');
 
 const createQuestion = async (req, res, next) => {
     try {
-        const { campaignId } = req.params;
-        // El body contendrá: titulo, descripcion, es_obligatorio, question_type_id, etc.
-        const newQuestion = await QuestionService.createQuestion(campaignId, req.body);
+        const { formId } = req.params;
+        
+        const newQuestion = await QuestionService.createQuestion(formId, req.body);
+        
         res.status(201).json({ success: true, data: newQuestion });
     } catch (error) {
         next(error);
     }
 };
 
-const getQuestionsByCampaign = async (req, res, next) => {
+const getQuestionsByForm = async (req, res, next) => {
     try {
-        const { campaignId } = req.params;
-        const questions = await QuestionService.getQuestionsByCampaign(campaignId);
-        res.status(200).json({ success: true, data: questions });
+        const { formId } = req.params;
+        const questions = await QuestionService.getQuestionsByForm(formId);
+        res.status(200).json({ success: true, count: questions.length, data: questions });
     } catch (error) {
         next(error);
     }
@@ -43,7 +44,8 @@ const deleteQuestion = async (req, res, next) => {
 
 module.exports = {
     createQuestion,
-    getQuestionsByCampaign,
+    getQuestionsByForm,
     updateQuestion,
     deleteQuestion,
 };
+

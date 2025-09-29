@@ -19,4 +19,31 @@ const getFormsByCampaign = async (req, res, next) => {
         next(error);
     }
 };
-module.exports = { createForm, getFormsByCampaign };
+
+const getFormById = async (req, res, next) => {
+    try {
+        const { id } = req.params; // 'id' viene de la URL /forms/:id
+        const form = await FormService.getFormById(id);
+        res.status(200).json({ success: true, data: form });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateForm = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        // El body de la petición contendrá el objeto 'diseño'
+        const updatedForm = await FormService.updateForm(id, req.body);
+        res.status(200).json({ success: true, data: updatedForm });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    createForm,
+    getFormsByCampaign,
+    getFormById,
+    updateForm
+};

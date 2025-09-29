@@ -11,7 +11,7 @@ const CampaignService = {
     },
 
     getCampaignById: async (id, empresaId) => {
-        const campaign = await CampaignModel.findById(id, empresaId);
+        const campaign = await CampaignModel.findByIdWithForms(id, empresaId);
         if (!campaign) {
             throw createError(404, 'Campaña no encontrada.');
         }
