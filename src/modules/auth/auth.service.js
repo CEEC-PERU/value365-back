@@ -6,7 +6,7 @@ class AuthService {
   async login(email, password) {
     try {
       const query = `
-        SELECT u.id, u.email, u.password, u.role_id, u.empresa_id, u.nombre, u.apellido, u.username, r.name as role_name, u.fecha_creacion
+        SELECT u.id, u.email, u.password, u.role_id, u.nombre, u.apellido, u.username, r.name as role_name, u.fecha_creacion
         FROM users u
         JOIN roles r ON u.role_id = r.id
         WHERE u.email = $1
@@ -24,27 +24,37 @@ class AuthService {
         throw new Error('Email o contraseña incorrectos');
       }
 
+      // Obtener las empresas asociadas al usuario
+      const empresasQuery = `
+        SELECT e.id, e.nombre, e.ruc, e.dominio, e.plan
+        FROM empresas e
+        JOIN user_empresas ue ON e.id = ue.empresa_id
+        WHERE ue.user_id = $1
+      `;
+      const empresasResult = await pool.query(empresasQuery, [user.id]);
+      const empresas = empresasResult.rows;
+
       const token = jwt.sign(
         {
           user_id: user.id,
           role_id: user.role_id,
-          empresa_id: user.empresa_id,
           email: user.email,
-          role: user.role_name
+          role: user.role_name,
+          empresas
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
       return {
-        token,
+        token
       };
     } catch (error) {
       throw error;
     }
   }
 
-  async register(email, password, roleId = 1) {
+  async register(email, password, roleId = 1, empresaIds = []) {
     try {
       const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
       if (existingUser.rows.length > 0) {
@@ -55,7 +65,6 @@ class AuthService {
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-      const defaultEmpresaId = 1;
       const nombre = username;
       const defaultApellido = '';
 
@@ -64,30 +73,37 @@ class AuthService {
             email, 
             password, 
             role_id, 
-            empresa_id, 
             username, 
             nombre, 
             apellido
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, email, role_id, empresa_id, username, nombre, apellido, fecha_creacion
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, email, role_id, username, nombre, apellido, fecha_creacion
       `;
-      const result = await pool.query(query, [email, hashedPassword, roleId, defaultEmpresaId, username, nombre, defaultApellido]);
-      
+      const result = await pool.query(query, [email, hashedPassword, roleId, username, nombre, defaultApellido]);
       const newUser = result.rows[0];
-      
+
+      // Asignar empresas al usuario si se proporcionan
+      if (empresaIds.length > 0) {
+        const assignEmpresasQuery = `
+          INSERT INTO user_empresas (user_id, empresa_id, fecha_creacion)
+          VALUES ($1, unnest($2::int[]), CURRENT_TIMESTAMP)
+          ON CONFLICT DO NOTHING;
+        `;
+        await pool.query(assignEmpresasQuery, [newUser.id, empresaIds]);
+      }
+
       const token = jwt.sign(
         {
           user_id: newUser.id,
           role_id: newUser.role_id,
-          empresa_id: newUser.empresa_id,
           email: newUser.email,
           role: 'user'
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
-      
+
       return {
         token,
         user: newUser,
