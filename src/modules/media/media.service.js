@@ -53,7 +53,6 @@ const MediaService = {
 
     async searchUnsplash(query) {
         if (!process.env.UNSPLASH_API_KEY) {
-            console.log('UNSPLASH_API_KEY no encontrada. Devolviendo resultados de prueba.');
             return [
                 { id: '1', url: 'https://images.unsplash.com/photo-1707343843539-7a54a25071f8?w=500', title: 'Imagen de prueba 1', type: 'image', source: 'unsplash' },
                 { id: '2', url: 'https://images.unsplash.com/photo-1720048160053-6a68f4e2f54c?w=500', title: 'Imagen de prueba 2', type: 'image', source: 'unsplash' }

@@ -5,6 +5,7 @@ const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
+// --- Configuración de CORS y Middlewares ---
 const allowedOrigins = [
     'https://encuestas-olive.vercel.app',
     'http://localhost:3000',
@@ -26,40 +27,33 @@ app.get('/', (req, res) => {
     res.json({ message: 'Value365 Backend API' });
 });
 
-try {
-    const authRoutes = require('./modules/auth/auth.routes');
-    app.use('/api/auth', authRoutes);
+// --- Carga Segura de Rutas ---
+// Esta función intenta cargar una ruta y avisa si falla.
+const loadAndRegisterRoutes = (path, filePath) => {
+    try {
+        const router = require(filePath);
+        app.use(path, router);
+        // console.log(`✅ Rutas cargadas exitosamente para: ${path}`);
+    } catch (error) {
+        console.error(`❌ ERROR: No se pudieron cargar las rutas para: ${path}`);
+        console.error(`   En el archivo: ${filePath}`);
+        console.error('   Razón:', error.message);
+        // Opcional: Detener el servidor si una ruta crítica falla
+        // process.exit(1); 
+    }
+};
 
-    const mediaRoutes = require('./modules/media/media.routes');
-    app.use('/api/media', mediaRoutes);
+loadAndRegisterRoutes('/api/auth', './modules/auth/auth.routes');
+loadAndRegisterRoutes('/api/media', './modules/media/media.routes');
+loadAndRegisterRoutes('/api/users', './modules/users/users.routes');
+loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
+loadAndRegisterRoutes('/api/v1/templates', './modules/templates/templates.routes');
+loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes'); // Ahora sabrás si esta o una anterior falla
+loadAndRegisterRoutes('/api/v1/forms', './modules/forms/forms.routes');
+loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
+loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
 
-    const userRoutes = require('./modules/users/users.routes');
-    app.use('/api/users', userRoutes);
-
-    const messagingRoutes = require('./modules/messaging/messaging.routes');
-    app.use('/api/messaging', messagingRoutes);
-
-    const templatesRoutes = require('./modules/templates/templates.routes');
-    app.use('/api/v1/templates', templatesRoutes);
-
-    const campaignsRoutes = require('./modules/campaigns/campaigns.routes');
-    app.use('/api/v1/campaigns', campaignsRoutes);
-    
-    
-    const formRoutes = require('./modules/forms/forms.routes');
-    app.use('/api/v1/forms', formRoutes);
-    app.use('/api/v1/campaigns/:campaignId/forms', formRoutes);
-
-
-    const questionRoutes = require('./modules/questions/questions.routes');
-    app.use('/api/v1/forms/:formId/questions', questionRoutes);
-    
-
-} catch (error) {
-    console.error(error.message);
-}
-
+// --- Manejador de Errores Global ---
 app.use(errorHandler);
 
 module.exports = app;
-

@@ -18,8 +18,8 @@ pool.connect((err, client, release) => {
     console.error('Error conectando a la base de datos:', err.stack);
   } else {
     console.log('Conectado a la base de datos');
-    release();
-  }
+  } 
+  release();
 });
 
 module.exports = pool;

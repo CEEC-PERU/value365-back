@@ -28,16 +28,16 @@ const login = async (req, res) => {
 
 const register = async (req, res) => {
   try {
-    const { email, password, role_id } = req.body;
+    const { email, password, roleId, empresaIds } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password || !roleId) {
       return res.status(400).json({
         success: false,
-        message: 'Email y contraseña son requeridos'
+        message: 'Email, contraseña y roleId son requeridos'
       });
     }
 
-    const user = await authService.register(email, password, role_id);
+    const user = await authService.register(email, password, roleId, empresaIds);
 
     res.status(201).json({
       success: true,

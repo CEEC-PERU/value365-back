@@ -1,9 +1,29 @@
 const CampaignModel = require('./campaigns.model');
 const createError = require('http-errors');
+const pool = require('../../config/db');
 
 const CampaignService = {
-    createCampaign: async (campaignData) => {
-        return CampaignModel.create(campaignData);
+    createCampaign: async (campaignData, userId, empresaId) => {
+        if (!userId || !empresaId) {
+            throw createError(400, 'Faltan parámetros requeridos: userId o empresaId.');
+        }
+
+        const empresaQuery = `
+            SELECT 1 FROM user_empresas WHERE user_id = $1 AND empresa_id = $2 LIMIT 1;
+        `;
+        const empresaResult = await pool.query(empresaQuery, [userId, empresaId]);
+
+        if (empresaResult.rowCount === 0) {
+            throw createError(403, 'El usuario no está asignado a esta empresa.');
+        }
+
+        const campaignDataWithEmpresa = {
+            ...campaignData,
+            empresa_id: empresaId,
+            user_id: userId
+        };
+
+        return CampaignModel.create(campaignDataWithEmpresa);
     },
 
     getCampaignsByEmpresa: async (empresaId) => {
@@ -23,11 +43,11 @@ const CampaignService = {
         if (!existingCampaign) {
             throw createError(404, 'Campaña no encontrada o no tienes permiso para editarla.');
         }
-        
+
         const dataToUpdate = {
             nombre: campaignData.nombre || existingCampaign.nombre,
             descripcion: campaignData.descripcion || existingCampaign.descripcion,
-            objetivo: campaignData.objetivo || existingCampaign.objetivo,
+            publico_objetivo: campaignData.publico_objetivo || existingCampaign.publico_objetivo,
             estado: campaignData.estado || existingCampaign.estado,
         };
 

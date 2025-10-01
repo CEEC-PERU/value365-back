@@ -17,7 +17,6 @@ const sendSms = async ({ recipient, messageBody }) => {
         },
       }
     );
-    console.log(`SMS enviado a ${recipient}`);
     return response.data;
   } catch (error) {
     console.error(`Error al enviar SMS a ${recipient}:`, error.response ? error.response.data : error.message);

@@ -34,6 +34,7 @@ const verifyToken = async (req, res, next) => {
             status: 403,
             message: 'Token inválido o expirado.'
         };
+        console.error('Error en la verificación del token:', error.message); // Log para depurar
         next(authError); // Pasamos el error al siguiente manejador de errores (errorHandler.js)
     }
 };
