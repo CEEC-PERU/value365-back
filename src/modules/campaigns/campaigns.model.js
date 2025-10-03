@@ -26,26 +26,22 @@ const CampaignModel = {
         const campaignResult = await pool.query(campaignQuery, [id, empresaId]);
         const campaign = campaignResult.rows[0];
 
-        // --- CORRECCIÓN ---
-        // Se añade una validación para evitar errores si la campaña no existe.
         if (!campaign) {
             return null;
         }
 
         const formsQuery = 'SELECT id, titulo, estado, fecha_creacion FROM forms WHERE campaign_id = $1 ORDER BY fecha_creacion DESC;';
         const formsResult = await pool.query(formsQuery, [id]);
-        
         campaign.forms = formsResult.rows;
 
         return campaign;
     },
-    
+
     async findById(id, empresaId) {
         const query = 'SELECT * FROM campaigns WHERE id = $1 AND empresa_id = $2;';
-        const { rows } = await pool.query(query, [id, empresaId]);
+        const { rows } = await pool.query(query, [parseInt(id, 10), empresaId]);
         return rows[0];
     },
-
 
     async update(id, { nombre, descripcion, publico_objetivo, estado }) {
         const query = `

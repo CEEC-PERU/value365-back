@@ -2,6 +2,7 @@ const FormModel = require('./forms.model');
 const createError = require('http-errors');
 const slugify = require('slugify');
 const { v4: uuidv4 } = require('uuid');
+const pool = require('../../config/db');
 
 
 const isObject = (item) => {
@@ -29,20 +30,22 @@ const mergeDeep = (target, source) => {
 
 const FormService = {
     async createForm(campaignId, formData) {
+        console.log('Datos enviados al modelo en createForm:', formData);
         formData.campaign_id = campaignId;
 
-        // Generar el slug combinado si no existe
         if (!formData.slug) {
             const baseSlug = slugify(formData.titulo, { lower: true, strict: true });
             formData.slug = `${baseSlug}-${uuidv4()}`;
-            console.log('Slug combinado generado en el servicio:', formData.slug); // Log para depuración
+            console.log('Slug combinado generado en el servicio:', formData.slug);
         }
 
         return FormModel.create(formData);
     },
 
     async getFormsByCampaign(campaignId) {
-        return FormModel.findByCampaignId(campaignId);
+        const forms = await FormModel.findByCampaignId(campaignId);
+        console.log('Formularios obtenidos en getFormsByCampaign:', forms);
+        return forms;
     },
     
     async getFormById(formId) {
@@ -54,7 +57,7 @@ const FormService = {
     },
 
     async getFormBySlug(slug) {
-        console.log('Slug recibido en el servicio:', slug); // Log para depuración
+        console.log('Slug recibido en el servicio:', slug);
         const form = await FormModel.findBySlug(slug);
         if (!form) {
             throw createError(404, 'Formulario no encontrado.');
@@ -88,7 +91,7 @@ const FormService = {
 
     async generateEmbedCodesForExistingForms() {
         try {
-            const forms = await FormModel.findAllWithSlug(); // Método para obtener formularios con slug válido
+            const forms = await FormModel.findAllWithSlug();
 
             const updatedForms = forms.map(form => {
                 const shareUrl = `${process.env.BASE_URL}/forms/${form.slug}`;
@@ -107,6 +110,13 @@ const FormService = {
             console.error('Error generando códigos embebidos:', error);
             throw error;
         }
+    },
+
+    async deleteForm(formId) {
+        const query = 'DELETE FROM forms WHERE id = $1 RETURNING *;';
+        const { rows } = await pool.query(query, [formId]);
+
+        return rows[0];
     },
 };
 

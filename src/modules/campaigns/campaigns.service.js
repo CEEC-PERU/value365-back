@@ -39,7 +39,16 @@ const CampaignService = {
     },
 
     updateCampaign: async (id, empresaId, campaignData) => {
-        const existingCampaign = await CampaignModel.findById(id, empresaId);
+        const campaignId = parseInt(id, 10); // Convertir id a número entero
+        if (isNaN(campaignId)) {
+            throw createError(400, 'El ID de la campaña debe ser un número válido.');
+        }
+
+        if (typeof empresaId !== 'number') {
+            throw createError(400, 'El ID de la empresa debe ser un número.');
+        }
+
+        const existingCampaign = await CampaignModel.findById(campaignId, empresaId);
         if (!existingCampaign) {
             throw createError(404, 'Campaña no encontrada o no tienes permiso para editarla.');
         }
@@ -51,7 +60,7 @@ const CampaignService = {
             estado: campaignData.estado || existingCampaign.estado,
         };
 
-        return CampaignModel.update(id, dataToUpdate);
+        return CampaignModel.update(campaignId, dataToUpdate);
     },
 
     deleteCampaign: async (id, empresaId) => {

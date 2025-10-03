@@ -105,9 +105,34 @@ const assignEmpresasToUser = async (req, res, next) => {
     }
 };
 
+const getUserEmpresasWithCampaigns = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se encontró el ID de usuario en el token.'
+            });
+        }
+
+        const empresasWithCampaigns = await usersService.findEmpresasWithCampaignsByUserId(userId);
+
+        res.status(200).json({
+            success: true,
+            count: empresasWithCampaigns.length,
+            data: empresasWithCampaigns
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getProfile,
     getUserEmpresas,
     createUserWithEmpresas,
-    assignEmpresasToUser
+    assignEmpresasToUser,
+    getUserEmpresasWithCampaigns
 };

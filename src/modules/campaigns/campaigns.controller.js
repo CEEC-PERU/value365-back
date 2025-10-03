@@ -39,7 +39,7 @@ const createCampaign = async (req, res, next) => {
 
 const getCampaigns = async (req, res, next) => {
     try {
-        const { empresa_id } = req.query; // Cambiamos de req.body a req.query
+        const { empresa_id } = req.query;
 
         if (!empresa_id) {
             return res.status(400).json({ success: false, message: 'El ID de la empresa es obligatorio.' });
@@ -59,64 +59,16 @@ const getCampaigns = async (req, res, next) => {
 const getCampaignById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { empresa_id } = req.body; // Aseguramos que empresa_id se obtenga de req.body
+        const { empresa_id } = req.query;
 
         if (!empresa_id) {
             return res.status(400).json({ success: false, message: 'El ID de la empresa es obligatorio.' });
         }
 
         const campaign = await CampaignService.getCampaignById(id, empresa_id);
-        if (!campaign) {
-            return res.status(404).json({ success: false, message: 'Campaña no encontrada.' });
-        }
-
-        res.status(200).json({ success: true, data: campaign });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const updateCampaign = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { empresa_id, ...campaignData } = req.body; // Aseguramos que empresa_id se obtenga de req.body
-
-        if (!empresa_id) {
-            return res.status(400).json({ success: false, message: 'El ID de la empresa es obligatorio.' });
-        }
-
-        const updatedCampaign = await CampaignService.updateCampaign(id, empresa_id, campaignData);
-        if (!updatedCampaign) {
-            return res.status(404).json({ success: false, message: 'Campaña no encontrada o no tienes permiso para editarla.' });
-        }
-
         res.status(200).json({
             success: true,
-            message: 'Campaña actualizada exitosamente.',
-            data: updatedCampaign
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const deleteCampaign = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { empresa_id } = req.body; // Aseguramos que empresa_id se obtenga de req.body
-
-        if (!empresa_id) {
-            return res.status(400).json({ success: false, message: 'El ID de la empresa es obligatorio.' });
-        }
-
-        const deletedCampaign = await CampaignService.deleteCampaign(id, empresa_id);
-        if (!deletedCampaign) {
-            return res.status(404).json({ success: false, message: 'Campaña no encontrada o no tienes permiso para eliminarla.' });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Campaña eliminada exitosamente.'
+            data: campaign
         });
     } catch (error) {
         next(error);
@@ -127,6 +79,4 @@ module.exports = {
     createCampaign,
     getCampaigns,
     getCampaignById,
-    updateCampaign,
-    deleteCampaign
 };

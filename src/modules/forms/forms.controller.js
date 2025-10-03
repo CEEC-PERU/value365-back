@@ -5,28 +5,25 @@ const slugify = require('slugify');
 
 const createForm = async (req, res, next) => {
     try {
+        console.log('Datos recibidos en createForm:', req.body);
         const { campaign_id, titulo, descripcion, diseño, configuraciones } = req.body;
 
-        // Validar que campaign_id y titulo sean obligatorios
         if (!campaign_id || !titulo) {
             return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
         }
 
-        // Generar el slug combinado con UUID
         const baseSlug = slugify(titulo, { lower: true, strict: true });
         const slug = `${baseSlug}-${uuidv4()}`;
-        console.log('Slug combinado generado:', slug); // Log para depuración
+        console.log('Slug combinado generado:', slug);
 
-        // Crear el formulario
         const newForm = await FormService.createForm(campaign_id, {
             titulo,
             descripcion,
             diseño,
             configuraciones,
-            slug // Pasamos el slug combinado
+            slug
         });
 
-        // Generar URL compartible
         const shareUrl = `${process.env.BASE_URL}/forms/${slug}`;
         const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
 
@@ -49,8 +46,10 @@ const createForm = async (req, res, next) => {
 
 const getFormsByCampaign = async (req, res, next) => {
     try {
+        console.log('CampaignId recibido en getFormsByCampaign:', req.params.campaignId);
         const { campaignId } = req.params;
         const forms = await FormService.getFormsByCampaign(campaignId);
+        console.log('Formularios obtenidos:', forms);
         res.status(200).json({ success: true, data: forms });
     } catch (error) {
         next(error);
@@ -59,7 +58,7 @@ const getFormsByCampaign = async (req, res, next) => {
 
 const getFormById = async (req, res, next) => {
     try {
-        const { id } = req.params; // 'id' viene de la URL /forms/:id
+        const { id } = req.params;
         const form = await FormService.getFormById(id);
         res.status(200).json({ success: true, data: form });
     } catch (error) {
@@ -80,7 +79,7 @@ const updateForm = async (req, res, next) => {
 const getFormBySlug = async (req, res, next) => {
     try {
         const { slug } = req.params;
-        console.log('Slug recibido en el controlador:', slug); // Log para depuración
+        console.log('Slug recibido en el controlador:', slug);
         const form = await FormService.getFormBySlug(slug);
         if (!form) {
             return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
@@ -91,10 +90,29 @@ const getFormBySlug = async (req, res, next) => {
     }
 };
 
+const deleteForm = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const deletedForm = await FormService.deleteForm(id);
+
+        if (!deletedForm) {
+            return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Formulario eliminado exitosamente.',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createForm,
     getFormsByCampaign,
     getFormById,
     updateForm,
-    getFormBySlug
+    getFormBySlug,
+    deleteForm,
 };

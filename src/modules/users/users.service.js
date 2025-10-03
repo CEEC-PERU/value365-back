@@ -100,6 +100,46 @@ class UsersService {
             throw error;
         }
     }
+
+    async findEmpresasWithCampaignsByUserId(userId) {
+        try {
+            const empresasQuery = `
+                SELECT 
+                    e.id AS empresa_id,
+                    e.nombre AS empresa_nombre,
+                    e.ruc,
+                    e.dominio,
+                    e.plan
+                FROM empresas e
+                JOIN user_empresas ue ON e.id = ue.empresa_id
+                WHERE ue.user_id = $1
+                ORDER BY e.nombre ASC;
+            `;
+            const empresasResult = await pool.query(empresasQuery, [userId]);
+            const empresas = empresasResult.rows;
+
+            for (const empresa of empresas) {
+                const campaignsQuery = `
+                    SELECT 
+                        c.id AS campaign_id,
+                        c.nombre AS campaign_nombre,
+                        c.descripcion,
+                        c.publico_objetivo,
+                        c.fecha_creacion
+                    FROM campaigns c
+                    WHERE c.empresa_id = $1
+                    ORDER BY c.fecha_creacion DESC;
+                `;
+                const campaignsResult = await pool.query(campaignsQuery, [empresa.empresa_id]);
+                empresa.campaigns = campaignsResult.rows;
+            }
+
+            return empresas;
+        } catch (error) {
+            console.error("Error en findEmpresasWithCampaignsByUserId:", error);
+            throw error;
+        }
+    }
 }
 
 module.exports = new UsersService();
