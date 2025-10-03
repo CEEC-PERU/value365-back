@@ -27,7 +27,6 @@ class AuthService {
         throw new Error('Email o contraseña incorrectos');
       }
 
-      // Obtener las empresas asociadas al usuario
       const empresasQuery = `
         SELECT e.id, e.nombre, e.ruc, e.dominio, e.plan
         FROM empresas e

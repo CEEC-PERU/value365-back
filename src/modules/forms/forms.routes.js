@@ -9,8 +9,13 @@ router.route('/')
     .post(formsController.createForm)
     .get(formsController.getFormsByCampaign);
 
-router.route('/:id')
+// Ruta específica para buscar por ID
+router.route('/id/:id')
     .get(formsController.getFormById)
     .put(formsController.updateForm);
+
+// Ruta específica para buscar por slug
+router.route('/slug/:slug')
+    .get(formsController.getFormBySlug);
 
 module.exports = router;
