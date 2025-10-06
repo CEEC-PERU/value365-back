@@ -42,9 +42,8 @@ loadAndRegisterRoutes('/api/media', './modules/media/media.routes');
 loadAndRegisterRoutes('/api/users', './modules/users/users.routes');
 loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
 loadAndRegisterRoutes('/api/v1/templates', './modules/templates/templates.routes');
-loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes');
-loadAndRegisterRoutes('/api/v1/forms', './modules/forms/forms.routes');
-loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
+loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes'); // Correcto
+loadAndRegisterRoutes('/api/forms', './modules/forms/forms.routes'); // La ruta base para formularios
 loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
 
 app.use(errorHandler);

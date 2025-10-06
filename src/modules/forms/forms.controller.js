@@ -2,10 +2,10 @@ const FormService = require('./forms.service');
 const FormSharesModel = require('../forms_shared/forms_shared.model');
 const { v4: uuidv4 } = require('uuid');
 const slugify = require('slugify');
+const { Form } = require('./forms.model');
 
 const createForm = async (req, res, next) => {
     try {
-        console.log('Datos recibidos en createForm:', req.body);
         const { campaign_id, titulo, descripcion, diseño, configuraciones } = req.body;
 
         if (!campaign_id || !titulo) {
@@ -14,7 +14,6 @@ const createForm = async (req, res, next) => {
 
         const baseSlug = slugify(titulo, { lower: true, strict: true });
         const slug = `${baseSlug}-${uuidv4()}`;
-        console.log('Slug combinado generado:', slug);
 
         const newForm = await FormService.createForm(campaign_id, {
             titulo,
@@ -46,10 +45,13 @@ const createForm = async (req, res, next) => {
 
 const getFormsByCampaign = async (req, res, next) => {
     try {
-        console.log('CampaignId recibido en getFormsByCampaign:', req.params.campaignId);
-        const { campaignId } = req.params;
+        const campaignId = req.params.campaignId || req.query.campaignId;
+
+        if (!campaignId) {
+            return res.status(400).json({ success: false, message: 'El ID de la campaña es obligatorio.' });
+        }
+
         const forms = await FormService.getFormsByCampaign(campaignId);
-        console.log('Formularios obtenidos:', forms);
         res.status(200).json({ success: true, data: forms });
     } catch (error) {
         next(error);
@@ -79,7 +81,6 @@ const updateForm = async (req, res, next) => {
 const getFormBySlug = async (req, res, next) => {
     try {
         const { slug } = req.params;
-        console.log('Slug recibido en el controlador:', slug);
         const form = await FormService.getFormBySlug(slug);
         if (!form) {
             return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
@@ -108,6 +109,26 @@ const deleteForm = async (req, res, next) => {
     }
 };
 
+async function addForm(formData) {
+    try {
+        if (!formData.titulo || !formData.descripcion || !formData.campaign_id) {
+            throw new Error('Faltan campos obligatorios: titulo, descripcion o campaign_id');
+        }
+
+        const newForm = await Form.create({
+            titulo: formData.titulo,
+            descripcion: formData.descripcion,
+            campaign_id: formData.campaign_id,
+            diseño: formData.diseño || {},
+            configuraciones: formData.configuraciones || {},
+        });
+
+        return newForm;
+    } catch (error) {
+        throw error;
+    }
+}
+
 module.exports = {
     createForm,
     getFormsByCampaign,
@@ -115,4 +136,5 @@ module.exports = {
     updateForm,
     getFormBySlug,
     deleteForm,
+    addForm,
 };

@@ -12,7 +12,7 @@ class AuthService {
         LEFT JOIN user_empresas ue ON u.id = ue.user_id
         WHERE u.email = $1
         GROUP BY u.id, r.name
-        LIMIT 1; -- Limitar a una empresa si el usuario tiene múltiples
+        LIMIT 1;
       `;
       const result = await pool.query(query, [email]);
 
@@ -49,9 +49,7 @@ class AuthService {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      return {
-        token
-      };
+      return { token };
     } catch (error) {
       throw error;
     }

@@ -6,16 +6,12 @@ const FormModel = {
         const diseño = JSON.stringify(formData.diseño || {});
         const configuraciones = JSON.stringify(formData.configuraciones || {});
 
-        console.log('Datos enviados al modelo para crear formulario:', { campaign_id, titulo, descripcion, slug }); // Log para depuración
-
         const query = `
             INSERT INTO forms (campaign_id, titulo, descripcion, slug, diseño, configuraciones)
             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
         `;
         const values = [campaign_id, titulo, descripcion, slug, diseño, configuraciones];
         const { rows } = await pool.query(query, values);
-
-        console.log('Formulario creado en la base de datos:', rows[0]); // Log para verificar el formulario creado
 
         return rows[0];
     },
@@ -33,7 +29,6 @@ const FormModel = {
     },
 
     async findBySlug(slug) {
-        console.log('Slug utilizado en la consulta:', slug); // Log para depuración
         const query = 'SELECT * FROM forms WHERE slug = $1;';
         const { rows } = await pool.query(query, [slug]);
         return rows[0];

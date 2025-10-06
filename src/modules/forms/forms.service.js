@@ -30,22 +30,18 @@ const mergeDeep = (target, source) => {
 
 const FormService = {
     async createForm(campaignId, formData) {
-        console.log('Datos enviados al modelo en createForm:', formData);
         formData.campaign_id = campaignId;
 
         if (!formData.slug) {
             const baseSlug = slugify(formData.titulo, { lower: true, strict: true });
             formData.slug = `${baseSlug}-${uuidv4()}`;
-            console.log('Slug combinado generado en el servicio:', formData.slug);
         }
 
         return FormModel.create(formData);
     },
 
     async getFormsByCampaign(campaignId) {
-        const forms = await FormModel.findByCampaignId(campaignId);
-        console.log('Formularios obtenidos en getFormsByCampaign:', forms);
-        return forms;
+        return FormModel.findByCampaignId(campaignId);
     },
     
     async getFormById(formId) {
@@ -57,7 +53,6 @@ const FormService = {
     },
 
     async getFormBySlug(slug) {
-        console.log('Slug recibido en el servicio:', slug);
         const form = await FormModel.findBySlug(slug);
         if (!form) {
             throw createError(404, 'Formulario no encontrado.');
@@ -104,10 +99,8 @@ const FormService = {
                 };
             });
 
-            console.log('Formularios actualizados con embedCode y shareUrl:', updatedForms);
             return updatedForms;
         } catch (error) {
-            console.error('Error generando códigos embebidos:', error);
             throw error;
         }
     },

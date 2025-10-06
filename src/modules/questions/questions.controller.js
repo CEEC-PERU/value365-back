@@ -3,9 +3,7 @@ const QuestionService = require('./questions.service');
 const createQuestion = async (req, res, next) => {
     try {
         const { formId } = req.params;
-        
         const newQuestion = await QuestionService.createQuestion(formId, req.body);
-        
         res.status(201).json({ success: true, data: newQuestion });
     } catch (error) {
         next(error);

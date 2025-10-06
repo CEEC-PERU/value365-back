@@ -1,68 +1,50 @@
-// --- CORRECCIÓN ---
-// Se ajusta la ruta para importar correctamente la configuración de la base de datos.
 const pool = require('../../config/db');
 
 const CampaignModel = {
-    async create({ empresa_id, nombre, descripcion, publico_objetivo, user_id }) {
+    async create(campaignData) {
         const query = `
-            INSERT INTO campaigns (empresa_id, nombre, descripcion, publico_objetivo, user_id)
+            INSERT INTO campaigns (empresa_id, nombre, descripcion, fecha_inicio, fecha_fin)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *;
         `;
-        const values = [empresa_id, nombre, descripcion, publico_objetivo, user_id];
-
+        const values = [
+            campaignData.empresa_id,
+            campaignData.nombre,
+            campaignData.descripcion,
+            campaignData.fecha_inicio,
+            campaignData.fecha_fin
+        ];
         const { rows } = await pool.query(query, values);
         return rows[0];
     },
 
-    async findByEmpresaId(empresaId) {
-        const query = 'SELECT * FROM campaigns WHERE empresa_id = $1 ORDER BY fecha_creacion DESC;';
-        const { rows } = await pool.query(query, [empresaId]);
-        return rows;
-    },
-
-    async findByIdWithForms(id, empresaId) {
-        const campaignQuery = 'SELECT * FROM campaigns WHERE id = $1 AND empresa_id = $2;';
-        const campaignResult = await pool.query(campaignQuery, [id, empresaId]);
-        const campaign = campaignResult.rows[0];
-
-        if (!campaign) {
-            return null;
-        }
-
-        const formsQuery = 'SELECT id, titulo, estado, fecha_creacion FROM forms WHERE campaign_id = $1 ORDER BY fecha_creacion DESC;';
-        const formsResult = await pool.query(formsQuery, [id]);
-        campaign.forms = formsResult.rows;
-
-        return campaign;
-    },
-
-    async findById(id, empresaId) {
-        const query = 'SELECT * FROM campaigns WHERE id = $1 AND empresa_id = $2;';
-        const { rows } = await pool.query(query, [parseInt(id, 10), empresaId]);
+    async findById(campaignId) {
+        const query = 'SELECT * FROM campaigns WHERE id = $1;';
+        const { rows } = await pool.query(query, [campaignId]);
         return rows[0];
     },
 
-    async update(id, { nombre, descripcion, publico_objetivo, estado }) {
+    async update(campaignId, campaignData) {
         const query = `
             UPDATE campaigns
-            SET 
-                nombre = $1, 
-                descripcion = $2, 
-                publico_objetivo = $3,
-                estado = $4,
-                fecha_actualizacion = CURRENT_TIMESTAMP
+            SET nombre = $1, descripcion = $2, fecha_inicio = $3, fecha_fin = $4
             WHERE id = $5
             RETURNING *;
         `;
-        const values = [nombre, descripcion, publico_objetivo, estado, id];
+        const values = [
+            campaignData.nombre,
+            campaignData.descripcion,
+            campaignData.fecha_inicio,
+            campaignData.fecha_fin,
+            campaignId
+        ];
         const { rows } = await pool.query(query, values);
         return rows[0];
     },
 
-    async delete(id, empresaId) {
-        const query = 'DELETE FROM campaigns WHERE id = $1 AND empresa_id = $2 RETURNING *;';
-        const { rows } = await pool.query(query, [id, empresaId]);
+    async delete(campaignId) {
+        const query = 'DELETE FROM campaigns WHERE id = $1 RETURNING *;';
+        const { rows } = await pool.query(query, [campaignId]);
         return rows[0];
     }
 };
