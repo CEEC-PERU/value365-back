@@ -3,11 +3,12 @@ const pool = require('../../config/db');
 const CampaignModel = {
     async create(campaignData) {
         const query = `
-            INSERT INTO campaigns (empresa_id, nombre, descripcion, fecha_inicio, fecha_fin)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO campaigns (user_id, empresa_id, nombre, descripcion, fecha_inicio, fecha_fin)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *;
         `;
         const values = [
+            campaignData.user_id, // Este campo debe venir del controlador/servicio
             campaignData.empresa_id,
             campaignData.nombre,
             campaignData.descripcion,
