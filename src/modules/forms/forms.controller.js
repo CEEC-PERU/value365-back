@@ -6,16 +6,17 @@ const { Form } = require('./forms.model');
 
 const createForm = async (req, res, next) => {
     try {
-        const { campaign_id, titulo, descripcion, diseño, configuraciones } = req.body;
+        const { campaignId } = req.params;
+        const { titulo, descripcion, diseño, configuraciones } = req.body;
 
-        if (!campaign_id || !titulo) {
+        if (!campaignId || !titulo) {
             return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
         }
 
         const baseSlug = slugify(titulo, { lower: true, strict: true });
         const slug = `${baseSlug}-${uuidv4()}`;
 
-        const newForm = await FormService.createForm(campaign_id, {
+        const newForm = await FormService.createForm(campaignId, {
             titulo,
             descripcion,
             diseño,
@@ -23,8 +24,8 @@ const createForm = async (req, res, next) => {
             slug
         });
 
-        const shareUrl = `${process.env.BASE_URL}/forms/${slug}`;
-        const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
+    const shareUrl = `https://value-cx.com/forms/${slug}`;
+    const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
 
         await FormSharesModel.create({
             form_id: newForm.id,

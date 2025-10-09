@@ -81,11 +81,16 @@ const updateCampaign = async (req, res, next) => {
         const { id } = req.params;
         const { empresa_id, ...campaignData } = req.body;
 
+        const campaignId = parseInt(id, 10);
+        if (isNaN(campaignId)) {
+            return res.status(400).json({ success: false, message: 'El ID de la campaña debe ser un número válido.' });
+        }
+
         if (!empresa_id || typeof empresa_id !== 'number') {
             return res.status(400).json({ success: false, message: 'El ID de la empresa es obligatorio y debe ser un número.' });
         }
 
-        const updatedCampaign = await CampaignService.updateCampaign(id, empresa_id, campaignData);
+        const updatedCampaign = await CampaignService.updateCampaign(campaignId, empresa_id, campaignData);
         if (!updatedCampaign) {
             return res.status(404).json({ success: false, message: 'Campaña no encontrada o no tienes permiso para editarla.' });
         }

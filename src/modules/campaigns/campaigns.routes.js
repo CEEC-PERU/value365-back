@@ -9,7 +9,12 @@ router.get('/:campaignId/forms', async (req, res, next) => {
     try {
         const { campaignId } = req.params;
         const forms = await require('../forms/forms.service').getFormsByCampaign(campaignId);
-        res.status(200).json({ success: true, data: forms });
+        // Agrega la URL pública a cada formulario
+        const formsWithUrl = forms.map(form => ({
+            ...form,
+            public_url: `https://value-cx.com/forms/${form.slug}`
+        }));
+        res.status(200).json({ success: true, data: formsWithUrl });
     } catch (error) {
         next(error);
     }
