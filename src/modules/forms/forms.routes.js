@@ -17,14 +17,4 @@ router.route('/id/:id')
 router.route('/slug/:slug')
     .get(formsController.getFormBySlug);
 
-router.post('/', async (req, res) => {
-    try {
-        const formData = req.body;
-        const newForm = await formsController.addForm(formData);
-        res.status(201).json({ message: 'Formulario creado con éxito', data: newForm });
-    } catch (error) {
-        res.status(500).json({ message: 'Error al crear el formulario', error: error.message });
-    }
-});
-
 module.exports = router;

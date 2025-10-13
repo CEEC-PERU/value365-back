@@ -71,7 +71,17 @@ const getFormById = async (req, res, next) => {
 
 const updateForm = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { campaignId, id } = req.params; // Obtener ambos IDs de la URL
+
+        // Validar que el formulario pertenece a la campaña especificada
+        const form = await FormService.getFormById(id);
+        if (!form || form.campaign_id.toString() !== campaignId) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Acceso denegado: este formulario no pertenece a la campaña especificada.' 
+            });
+        }
+
         const updatedForm = await FormService.updateForm(id, req.body);
         res.status(200).json({ success: true, data: updatedForm });
     } catch (error) {
@@ -94,7 +104,17 @@ const getFormBySlug = async (req, res, next) => {
 
 const deleteForm = async (req, res, next) => {
     try {
-        const { id } = req.params;
+        const { campaignId, id } = req.params; // Obtener ambos IDs de la URL
+
+        // Validar que el formulario pertenece a la campaña especificada
+        const form = await FormService.getFormById(id);
+        if (!form || form.campaign_id.toString() !== campaignId) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Acceso denegado: este formulario no pertenece a la campaña especificada.' 
+            });
+        }
+
         const deletedForm = await FormService.deleteForm(id);
 
         if (!deletedForm) {

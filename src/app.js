@@ -47,7 +47,6 @@ loadAndRegisterRoutes('/api/users', './modules/users/users.routes');
 loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
 loadAndRegisterRoutes('/api/v1/templates', './modules/templates/templates.routes');
 loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes');
-loadAndRegisterRoutes('/api/forms', './modules/forms/forms.routes');
 loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
 loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
 
