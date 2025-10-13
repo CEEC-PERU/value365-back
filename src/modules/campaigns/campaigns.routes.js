@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const campaignsController = require('./campaigns.controller');
@@ -19,6 +18,9 @@ router.get('/:campaignId/forms', async (req, res, next) => {
         next(error);
     }
 });
+
+// Crear formulario para una campaña específica
+router.post('/:campaignId/forms', require('../forms/forms.controller').createForm);
 
 router.use(jwtMiddleware);
 
