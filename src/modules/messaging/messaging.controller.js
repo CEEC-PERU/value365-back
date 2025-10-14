@@ -23,8 +23,9 @@ const sendCampaignController = async (req, res) => {
         recipient = `+51${recipient}`;
       }
 
-      const surveyUrl = `https://tu-plataforma.com/encuesta/${surveyId}?user=${recipient}`;
-      const messageBody = `Hola ${name}, ayúdanos a mejorar respondiendo esta encuesta: ${surveyUrl}`;
+      const surveyUrl = `https://value-cx.com/encuesta/${surveyId}`;
+      const messageBody = `Hola ${name}, ayudanos a mejorar respondiendo esta encuesta: ${surveyUrl}`;
+      
 
       return messagingService.sendSms({
         recipient: recipient,
