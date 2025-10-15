@@ -1,11 +1,6 @@
 const pool = require('../../config/db');
 
 const FormSharesModel = {
-    /**
-     * Crea un nuevo registro para compartir un formulario.
-     * @param {Object} shareData - Datos como form_id, tipo y la URL generada.
-     * @param {pg.Client} client - Cliente opcional para transacciones.
-     */
     async create(shareData, client = pool) {
         const { form_id, tipo, url_generada, configuracion } = shareData;
         
