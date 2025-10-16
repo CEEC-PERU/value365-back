@@ -24,9 +24,33 @@ const createForm = async (req, res, next) => {
             slug
         });
 
-    const shareUrl = `https://value-cx.com/forms/${slug}`;
-    const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
+        // Guardar preguntas asociadas al formulario
+        const QuestionsModel = require('../questions/questions.model');
+        const QuestionOptionsModel = require('../question_options/question_options.model');
+        const preguntas = req.body.preguntas;
+        let preguntasGuardadas = [];
+        if (preguntas && preguntas.length > 0) {
+            for (const pregunta of preguntas) {
+                const preguntaGuardada = await QuestionsModel.create({
+                    form_id: newForm.id,
+                    question_type_id: pregunta.tipo_id,
+                    titulo: pregunta.titulo || pregunta.enunciado,
+                    descripcion: pregunta.descripcion,
+                    es_obligatorio: pregunta.es_obligatorio,
+                    posicion_orden: pregunta.posicion_orden,
+                    configuraciones: pregunta.configuraciones,
+                    validaciones: pregunta.validaciones
+                });
+                let opcionesGuardadas = [];
+                if (pregunta.opciones && Array.isArray(pregunta.opciones) && pregunta.opciones.length > 0) {
+                    opcionesGuardadas = await QuestionOptionsModel.bulkCreate(preguntaGuardada.id, pregunta.opciones);
+                }
+                preguntasGuardadas.push({ ...preguntaGuardada, opciones: opcionesGuardadas });
+            }
+        }
 
+        const shareUrl = `https://value-cx.com/forms/${slug}`;
+        const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
         await FormSharesModel.create({
             form_id: newForm.id,
             tipo: 'public',
@@ -37,7 +61,7 @@ const createForm = async (req, res, next) => {
         res.status(201).json({
             success: true,
             message: 'Formulario creado exitosamente.',
-            data: { ...newForm, shareUrl, embedCode }
+            data: { ...newForm, preguntas: preguntasGuardadas, shareUrl, embedCode }
         });
     } catch (error) {
         next(error);
@@ -73,7 +97,6 @@ const updateForm = async (req, res, next) => {
     try {
         const { campaignId, id } = req.params; // Obtener ambos IDs de la URL
 
-        // Validar que el formulario pertenece a la campaña especificada
         const form = await FormService.getFormById(id);
         if (!form || form.campaign_id.toString() !== campaignId) {
             return res.status(403).json({ 
@@ -106,7 +129,6 @@ const deleteForm = async (req, res, next) => {
     try {
         const { campaignId, id } = req.params; // Obtener ambos IDs de la URL
 
-        // Validar que el formulario pertenece a la campaña especificada
         const form = await FormService.getFormById(id);
         if (!form || form.campaign_id.toString() !== campaignId) {
             return res.status(403).json({ 

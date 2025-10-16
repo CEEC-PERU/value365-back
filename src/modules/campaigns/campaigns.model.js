@@ -8,7 +8,7 @@ const CampaignModel = {
             RETURNING *;
         `;
         const values = [
-            campaignData.user_id, // Este campo debe venir del controlador/servicio
+            campaignData.user_id,
             campaignData.empresa_id,
             campaignData.nombre,
             campaignData.descripcion,
