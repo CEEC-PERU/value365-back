@@ -1,9 +1,17 @@
 const axios = require('axios');
 
 const sendSms = async ({ recipient, messageBody }) => {
+  const senderId = process.env.SMS_SENDER_ID ? process.env.SMS_SENDER_ID.replace(/"/g, "") : undefined;
+  const apiKey = process.env.SMS_API_KEY ? process.env.SMS_API_KEY.replace(/"/g, "") : undefined;
+  const clientId = process.env.SMS_CLIENT_ID ? process.env.SMS_CLIENT_ID.replace(/"/g, "") : undefined;
+  // Quitar el + si existe
+  let mobileNumber = recipient.startsWith('+') ? recipient.slice(1) : recipient;
   const payload = {
-    recipient,
-    messageBody,
+    ApiKey: apiKey,
+    ClientId: clientId,
+    SenderId: senderId,
+    MobileNumbers: mobileNumber,
+    Message: messageBody,
   };
 
   try {
