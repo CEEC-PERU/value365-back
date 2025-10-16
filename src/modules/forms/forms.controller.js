@@ -31,10 +31,10 @@ const createForm = async (req, res, next) => {
         let preguntasGuardadas = [];
         if (preguntas && preguntas.length > 0) {
             for (const pregunta of preguntas) {
-                // Guardar pregunta
                 const preguntaGuardada = await QuestionsModel.create({
                     form_id: newForm.id,
                     question_type_id: pregunta.tipo_id,
+                    titulo: pregunta.titulo || pregunta.enunciado,
                     descripcion: pregunta.descripcion,
                     es_obligatorio: pregunta.es_obligatorio,
                     posicion_orden: pregunta.posicion_orden,
