@@ -87,7 +87,13 @@ const getFormById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const form = await FormService.getFormById(id);
-        res.status(200).json({ success: true, data: form });
+        if (!form) {
+            return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
+        }
+        // Obtener preguntas asociadas
+        const QuestionModel = require('../questions/questions.model');
+        const preguntas = await QuestionModel.findByFormId(form.id);
+        res.status(200).json({ success: true, data: { ...form, preguntas } });
     } catch (error) {
         next(error);
     }
@@ -119,7 +125,10 @@ const getFormBySlug = async (req, res, next) => {
         if (!form) {
             return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
         }
-        res.status(200).json({ success: true, data: form });
+        // Obtener preguntas asociadas
+        const QuestionModel = require('../questions/questions.model');
+        const preguntas = await QuestionModel.findByFormId(form.id);
+        res.status(200).json({ success: true, data: { ...form, preguntas } });
     } catch (error) {
         next(error);
     }

@@ -75,67 +75,50 @@ const sendCampaignController = async (req, res) => {
     }
 
     // Si no hay archivo, usar números y mensaje del body
-  const { numbers, message, publicUrl } = req.body;
-  console.log('Datos recibidos para envío manual:', { numbers, message, publicUrl });
+    const { numbers, message, publicUrl } = req.body;
     if (!numbers || !Array.isArray(numbers) || numbers.length === 0) {
       return res.status(400).json({ error: 'Debes proporcionar al menos un número.' });
     }
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ error: 'Debes proporcionar un mensaje.' });
     }
-
-    // Función para limpiar y formatear números
+    // Un solo envío con todos los números juntos
     const formatNumber = (num) => {
       let clean = String(num).replace(/\D/g, "");
       if (!clean.startsWith("51")) clean = "51" + clean;
-      return "+" + clean;
+      return clean;
     };
-
-  const sendingPromises = numbers.map(num => {
-      const recipient = formatNumber(num);
-      // Reemplazar {url} en el mensaje si existe
-      let personalizedMsg = message;
-      if (publicUrl) {
-        personalizedMsg = personalizedMsg.replace(/\{url\}/gi, publicUrl);
-      }
-      console.log('Enviando SMS a:', recipient, 'Mensaje:', personalizedMsg);
-      return messagingService.sendSms({
-        recipient,
-        messageBody: personalizedMsg,
-      }).then(resp => {
-        console.log('Respuesta de la API de SMS:', resp);
-        return resp;
-      }).catch(err => {
-        console.error('Error al enviar SMS:', err);
-        throw err;
+    const formattedNumbers = numbers.map(formatNumber);
+    const mobileNumbersStr = formattedNumbers.join(",");
+    let personalizedMsg = message;
+    if (publicUrl) personalizedMsg = personalizedMsg.replace(/\{url\}/gi, publicUrl);
+    try {
+      const resp = await messagingService.sendSms({
+        mobileNumbers: mobileNumbersStr,
+        messageBody: personalizedMsg
       });
-    });
-
-      const results = await Promise.all(sendingPromises);
       let sentCount = 0;
       let details = [];
-      results.forEach(resp => {
-        if (resp && Array.isArray(resp.Data)) {
-          resp.Data.forEach(item => {
-            if (item.MessageErrorCode === 0) sentCount++;
-            details.push({
-              MobileNumber: item.MobileNumber,
-              status: item.MessageErrorDescription
-            });
+      if (resp && Array.isArray(resp.Data)) {
+        resp.Data.forEach(item => {
+          if (item.MessageErrorCode === 0) sentCount++;
+          details.push({
+            MobileNumber: item.MobileNumber,
+            status: item.MessageErrorDescription
           });
-        }
-      });
+        });
+      }
       res.status(200).json({
         message: `Campaña enviada exitosamente`,
         sentCount,
         details
       });
+    } catch (error) {
+      console.error("Error en sendCampaignController:", error);
+      res.status(500).json({ error: 'Ocurrió un error al enviar la campaña.', details: error.message });
+    }
   } catch (error) {
     console.error("Error en sendCampaignController:", error);
-    if (error.response) {
-      // Error de la API de SMS
-      console.error("Respuesta de la API de SMS:", error.response.data);
-    }
     res.status(500).json({ error: 'Ocurrió un error al enviar la campaña.', details: error.message });
   }
 };
