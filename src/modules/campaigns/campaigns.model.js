@@ -43,10 +43,17 @@ const CampaignModel = {
         return rows[0];
     },
 
+
     async delete(campaignId) {
         const query = 'DELETE FROM campaigns WHERE id = $1 RETURNING *;';
         const { rows } = await pool.query(query, [campaignId]);
         return rows[0];
+    },
+
+    async findByEmpresaId(empresa_id) {
+        const query = 'SELECT * FROM campaigns WHERE empresa_id = $1;';
+        const { rows } = await pool.query(query, [empresa_id]);
+        return rows;
     }
 };
 
