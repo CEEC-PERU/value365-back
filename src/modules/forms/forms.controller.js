@@ -8,7 +8,8 @@ const createForm = async (req, res, next) => {
     try {
         const { campaignId } = req.params;
         const { titulo, descripcion, diseño, configuraciones } = req.body;
-
+        
+        console.log('Datos recibidos para crear el formulario:', titulo, descripcion, diseño, configuraciones);
         if (!campaignId || !titulo) {
             return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
         }
@@ -41,6 +42,7 @@ const createForm = async (req, res, next) => {
                     configuraciones: pregunta.configuraciones,
                     validaciones: pregunta.validaciones
                 });
+                console.log('Pregunta guardada:', preguntaGuardada);
                 let opcionesGuardadas = [];
                 if (pregunta.opciones && Array.isArray(pregunta.opciones) && pregunta.opciones.length > 0) {
                     opcionesGuardadas = await QuestionOptionsModel.bulkCreate(preguntaGuardada.id, pregunta.opciones);
@@ -86,13 +88,17 @@ const getFormsByCampaign = async (req, res, next) => {
 const getFormById = async (req, res, next) => {
     try {
         const { id } = req.params;
+        console.log("id",id);
+
         const form = await FormService.getFormById(id);
+        console.log('Formulario obtenido:', form);
         if (!form) {
             return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
         }
         // Obtener preguntas asociadas
         const QuestionModel = require('../questions/questions.model');
         const preguntas = await QuestionModel.findByFormId(form.id);
+        console.log('Preguntas obtenidas:', preguntas);
         res.status(200).json({ success: true, data: { ...form, preguntas } });
     } catch (error) {
         next(error);
@@ -118,6 +124,7 @@ const updateForm = async (req, res, next) => {
     }
 };
 
+//Boton publicar
 const getFormBySlug = async (req, res, next) => {
     try {
         const { slug } = req.params;
