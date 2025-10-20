@@ -21,6 +21,11 @@ const loadAndRegisterRoutes = (path, filePath) => {
 const allowedOrigins = [
     'https://encuestas-olive.vercel.app',
     'http://localhost:3000',
+    'https://main.d3n0qdnme5u0gx.amplifyapp.com/',
+    'https://value-cx.com',
+    'https://www.value-cx.com'
+
+
 ];
 const corsOptions = {
     origin: (origin, callback) => {
