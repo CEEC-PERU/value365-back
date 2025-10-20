@@ -48,7 +48,8 @@ loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
 loadAndRegisterRoutes('/api/v1/templates', './modules/templates/templates.routes');
 loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes');
 // Registrar rutas v2 para campañas y SMS
-loadAndRegisterRoutes('/api', './modules/campaigns/campaigns.routes');
+// NOTA: Comentada la ruta genérica '/api' que interceptaba peticiones como /api/groups
+// loadAndRegisterRoutes('/api', './modules/campaigns/campaigns.routes');
 // Registrar endpoint absoluto para SMS
 loadAndRegisterRoutes('/api/v2', './modules/campaigns/sms.routes');
 loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
