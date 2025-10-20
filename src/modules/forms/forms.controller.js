@@ -6,16 +6,6 @@ const { Form } = require('./forms.model');
 
 const createForm = async (req, res, next) => {
     try {
-        // LOGGING DETALLADO PARA DEBUG
-        console.log('--- BODY RECIBIDO EN createForm ---');
-        console.log(JSON.stringify(req.body, null, 2));
-        if (Array.isArray(req.body.preguntas)) {
-            req.body.preguntas.forEach((pregunta, idx) => {
-                console.log(`Pregunta #${idx + 1}: tipo_id=${pregunta.tipo_id}`);
-                console.log('  configuraciones:', JSON.stringify(pregunta.configuraciones, null, 2));
-            });
-        }
-
         const { campaignId } = req.params;
         const { titulo, descripcion, diseño, configuraciones } = req.body;
 
@@ -41,8 +31,6 @@ const createForm = async (req, res, next) => {
         let preguntasGuardadas = [];
         if (preguntas && preguntas.length > 0) {
             for (const pregunta of preguntas) {
-                // LOG INDIVIDUAL DE PREGUNTA
-                console.log('Guardando pregunta:', JSON.stringify(pregunta, null, 2));
                 const preguntaGuardada = await QuestionsModel.create({
                     form_id: newForm.id,
                     question_type_id: pregunta.tipo_id,
