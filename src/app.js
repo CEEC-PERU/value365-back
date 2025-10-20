@@ -1,3 +1,4 @@
+// ...existing code...
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -47,11 +48,22 @@ loadAndRegisterRoutes('/api/users', './modules/users/users.routes');
 loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
 loadAndRegisterRoutes('/api/v1/templates', './modules/templates/templates.routes');
 loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes');
+// Registrar rutas v2 para campañas y SMS
+loadAndRegisterRoutes('/api', './modules/campaigns/campaigns.routes');
+// Registrar endpoint absoluto para SMS
+loadAndRegisterRoutes('/api/v2', './modules/campaigns/sms.routes');
 loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
+
 loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
+// Registrar rutas de grupos
+loadAndRegisterRoutes('/api/groups', './modules/groups/groups.routes');
+// Registrar rutas de contactos
+loadAndRegisterRoutes('/api/contacts', './modules/contacts/contacts.routes');
 
 
 // --- 5. Add final middleware (like error handlers) ---
+// Registrar rutas de formularios bajo /forms para acceso directo
+loadAndRegisterRoutes('/forms', './modules/forms/forms.routes');
 app.use(errorHandler);
 
 // --- 6. Export the app ---
