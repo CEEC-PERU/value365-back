@@ -16,7 +16,20 @@ const submitResponse = async (req, res) => {
     res.status(500).json({ error: 'Hubo un error al procesar tu respuesta.' });
   }
 };
+const getResponsesByFormId = async (req, res) => {
+  try {
+    const { formId } = req.params;
+    if (!formId) {
+      return res.status(400).json({ error: 'Falta el ID del formulario.' });
+    }
+    const responses = await responsesService.getResponsesByFormId(formId);
+    res.status(200).json({ success: true, data: responses });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener respuestas.' });
+  }
+};
 
 module.exports = {
   submitResponse,
+  getResponsesByFormId,
 };

@@ -13,8 +13,8 @@ const createForm = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
         }
 
-        const baseSlug = slugify(titulo, { lower: true, strict: true });
-        const slug = `${baseSlug}-${uuidv4()}`;
+    const baseSlug = slugify(titulo, { lower: true, strict: true });
+    const slug = `${baseSlug}-${uuidv4()}`;
 
         const newForm = await FormService.createForm(campaignId, {
             titulo,
@@ -24,33 +24,9 @@ const createForm = async (req, res, next) => {
             slug
         });
 
-        // Guardar preguntas asociadas al formulario
-        const QuestionsModel = require('../questions/questions.model');
-        const QuestionOptionsModel = require('../question_options/question_options.model');
-        const preguntas = req.body.preguntas;
-        let preguntasGuardadas = [];
-        if (preguntas && preguntas.length > 0) {
-            for (const pregunta of preguntas) {
-                const preguntaGuardada = await QuestionsModel.create({
-                    form_id: newForm.id,
-                    question_type_id: pregunta.tipo_id,
-                    titulo: pregunta.titulo || pregunta.enunciado,
-                    descripcion: pregunta.descripcion,
-                    es_obligatorio: pregunta.es_obligatorio,
-                    posicion_orden: pregunta.posicion_orden,
-                    configuraciones: pregunta.configuraciones,
-                    validaciones: pregunta.validaciones
-                });
-                let opcionesGuardadas = [];
-                if (pregunta.opciones && Array.isArray(pregunta.opciones) && pregunta.opciones.length > 0) {
-                    opcionesGuardadas = await QuestionOptionsModel.bulkCreate(preguntaGuardada.id, pregunta.opciones);
-                }
-                preguntasGuardadas.push({ ...preguntaGuardada, opciones: opcionesGuardadas });
-            }
-        }
+    const shareUrl = `https://value-cx.com/forms/${slug}`;
+    const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
 
-        const shareUrl = `https://value-cx.com/forms/${slug}`;
-        const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
         await FormSharesModel.create({
             form_id: newForm.id,
             tipo: 'public',
@@ -61,7 +37,7 @@ const createForm = async (req, res, next) => {
         res.status(201).json({
             success: true,
             message: 'Formulario creado exitosamente.',
-            data: { ...newForm, preguntas: preguntasGuardadas, shareUrl, embedCode }
+            data: { ...newForm, shareUrl, embedCode }
         });
     } catch (error) {
         next(error);
@@ -87,13 +63,7 @@ const getFormById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const form = await FormService.getFormById(id);
-        if (!form) {
-            return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
-        }
-        // Obtener preguntas asociadas
-        const QuestionModel = require('../questions/questions.model');
-        const preguntas = await QuestionModel.findByFormId(form.id);
-        res.status(200).json({ success: true, data: { ...form, preguntas } });
+        res.status(200).json({ success: true, data: form });
     } catch (error) {
         next(error);
     }
@@ -101,16 +71,7 @@ const getFormById = async (req, res, next) => {
 
 const updateForm = async (req, res, next) => {
     try {
-        const { campaignId, id } = req.params; // Obtener ambos IDs de la URL
-
-        const form = await FormService.getFormById(id);
-        if (!form || form.campaign_id.toString() !== campaignId) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Acceso denegado: este formulario no pertenece a la campaña especificada.' 
-            });
-        }
-
+        const { id } = req.params;
         const updatedForm = await FormService.updateForm(id, req.body);
         res.status(200).json({ success: true, data: updatedForm });
     } catch (error) {
@@ -122,13 +83,30 @@ const getFormBySlug = async (req, res, next) => {
     try {
         const { slug } = req.params;
         const form = await FormService.getFormBySlug(slug);
+        
         if (!form) {
             return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
         }
-        // Obtener preguntas asociadas
-        const QuestionModel = require('../questions/questions.model');
-        const preguntas = await QuestionModel.findByFormId(form.id);
-        res.status(200).json({ success: true, data: { ...form, preguntas } });
+
+        // Mapear las preguntas al formato esperado por el frontend
+        if (form.preguntas) {
+            form.preguntas = form.preguntas.map(pregunta => ({
+                id: pregunta.id,
+                titulo: pregunta.titulo,
+                descripcion: pregunta.descripcion || '',
+                tipo_id: pregunta.question_type_id,
+                es_obligatorio: pregunta.es_obligatorio,
+                posicion_orden: pregunta.posicion_orden,
+                opciones: pregunta.opciones || [],
+                validaciones: pregunta.validaciones || {},
+                configuraciones: pregunta.configuraciones || {}
+            }));
+            
+            // Ordenar preguntas por posicion_orden
+            form.preguntas.sort((a, b) => a.posicion_orden - b.posicion_orden);
+        }
+
+        res.status(200).json({ success: true, data: form });
     } catch (error) {
         next(error);
     }
@@ -136,16 +114,7 @@ const getFormBySlug = async (req, res, next) => {
 
 const deleteForm = async (req, res, next) => {
     try {
-        const { campaignId, id } = req.params; // Obtener ambos IDs de la URL
-
-        const form = await FormService.getFormById(id);
-        if (!form || form.campaign_id.toString() !== campaignId) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Acceso denegado: este formulario no pertenece a la campaña especificada.' 
-            });
-        }
-
+        const { id } = req.params;
         const deletedForm = await FormService.deleteForm(id);
 
         if (!deletedForm) {
