@@ -24,9 +24,13 @@ const allowedOrigins = [
     'https://main.d3n0qdnme5u0gx.amplifyapp.com/',
     'https://value-cx.com',
     'https://www.value-cx.com'
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> a92c608240584bd5e5e405f8d66551785754150e
 ];
+
 const corsOptions = {
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -52,11 +56,16 @@ loadAndRegisterRoutes('/api/users', './modules/users/users.routes');
 loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
 loadAndRegisterRoutes('/api/v1/templates', './modules/templates/templates.routes');
 loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes');
+<<<<<<< HEAD
 // Registrar rutas v2 para campañas y SMS
 // NOTA: Comentada la ruta genérica '/api' que interceptaba peticiones como /api/groups
 // loadAndRegisterRoutes('/api', './modules/campaigns/campaigns.routes');
 // Registrar endpoint absoluto para SMS
 loadAndRegisterRoutes('/api/v2', './modules/campaigns/sms.routes');
+=======
+// Ruta pública para formularios (sin autenticación)
+loadAndRegisterRoutes('/api/forms', './modules/forms/forms.routes');
+>>>>>>> a92c608240584bd5e5e405f8d66551785754150e
 loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
 
 loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
