@@ -35,8 +35,8 @@ const FormModel = {
     },
 
     async update(formId, dataToUpdate) {
-        const fields = Object.keys(dataToUpdate);
-        const setString = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+    const fields = Object.keys(dataToUpdate);
+    const setString = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
 
         const values = fields.map(field => {
             if (field === 'diseño' && typeof dataToUpdate[field] === 'object') {

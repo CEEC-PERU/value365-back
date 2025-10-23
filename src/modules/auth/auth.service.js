@@ -55,7 +55,7 @@ class AuthService {
     }
   }
 
-  async register(email, password, roleId = 1) {
+  async register(email, password, roleId = 1, empresaIds) {
     try {
       const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
       if (existingUser.rows.length > 0) {
@@ -69,6 +69,7 @@ class AuthService {
       const nombre = username;
       const defaultApellido = '';
 
+      // Crear usuario
       const query = `
         INSERT INTO users (
             email, 
@@ -83,7 +84,17 @@ class AuthService {
       `;
       const result = await pool.query(query, [email, hashedPassword, roleId, username, nombre, defaultApellido]);
       const newUser = result.rows[0];
-      
+
+      // Asignar empresas si se proporcionan
+      if (empresaIds && Array.isArray(empresaIds) && empresaIds.length > 0) {
+        // Insertar user_id, empresa_id y role_id
+        const insertEmpresasQuery = `
+          INSERT INTO user_empresas (user_id, empresa_id, role_id)
+          SELECT $1, unnest($2::int[]), $3;
+        `;
+        await pool.query(insertEmpresasQuery, [newUser.id, empresaIds, roleId]);
+      }
+
       const token = jwt.sign(
         {
           user_id: newUser.id,

@@ -1,3 +1,4 @@
+
 const pool = require('../../config/db');
 
 const ResponsesModel = {
@@ -19,6 +20,20 @@ const ResponsesModel = {
 			);
 		}
 		return form_response_id;
+	},
+
+	async getResponsesByFormId(form_id) {
+		// Obtiene todas las respuestas de un formulario, agrupadas por sesión
+		const formResponsesQuery = `
+			SELECT fr.id as form_response_id, fr.session_id, fr.fecha_inicio, fr.estado,
+				   qr.question_id, qr.respuesta_texto, qr.respuesta_numerica, qr.respuesta_json
+			FROM form_responses fr
+			LEFT JOIN question_responses qr ON fr.id = qr.form_response_id
+			WHERE fr.form_id = $1
+			ORDER BY fr.id, qr.question_id;
+		`;
+		const { rows } = await pool.query(formResponsesQuery, [form_id]);
+		return rows;
 	}
 };
 
