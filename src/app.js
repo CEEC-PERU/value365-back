@@ -53,6 +53,47 @@ loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/fo
 loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
 
 
+// --- WEBHOOKS DE WHATSAPP ---
+
+// ESTE CÓDIGO ES PARA QUE META VERIFIQUE TU URL (SOLO SE USA UNA VEZ)
+app.get('/webhook', (req, res) => {
+    // Lee el token secreto desde tu archivo .env
+    const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
+
+    // Parsea los parámetros que Meta te envía
+    let mode = req.query['hub.mode'];
+    let token = req.query['hub.verify_token'];
+    let challenge = req.query['hub.challenge'];
+
+    // Revisa si el modo y el token son correctos
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            // Si todo está bien, responde con el 'challenge'
+            console.log('✅ ¡WEBHOOK VERIFICADO POR META!');
+            res.status(200).send(challenge);
+        } else {
+            // Si el token no coincide, rechaza
+            console.log('❌ WEBHOOK RECHAZADO: Token incorrecto.');
+            res.sendStatus(403);
+        }
+    }
+});
+
+// ESTE CÓDIGO ES PARA RECIBIR LOS MENSAJES DE TUS CLIENTES
+app.post('/webhook', (req, res) => {
+    let body = req.body;
+
+    // Imprime el mensaje recibido en tu consola
+    console.log('MENSAJE DE WHATSAPP RECIBIDO:', JSON.stringify(body, null, 2));
+
+    // Aquí puedes agregar la lógica para guardar el mensaje en tu base de datos
+    
+    // Responde 200 OK para que Meta sepa que lo recibiste
+    res.sendStatus(200);
+});
+
+// --- FIN DE WEBHOOKS DE WHATSAPP ---
+
 // --- 5. Add final middleware (like error handlers) ---
 app.use(errorHandler);
 

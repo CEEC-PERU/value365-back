@@ -1,161 +1,256 @@
-const FormService = require('./forms.service');
-const FormSharesModel = require('../forms_shared/forms_shared.model');
-const { v4: uuidv4 } = require('uuid');
+const FormModel = require('./forms.model');
+const createError = require('http-errors');
 const slugify = require('slugify');
-const { Form } = require('./forms.model');
+const { v4: uuidv4 } = require('uuid');
 
-const createForm = async (req, res, next) => {
-    try {
-        const { campaignId } = req.params;
-        const { titulo, descripcion, diseño, configuraciones } = req.body;
+const isObject = (item) => {
+    return (item && typeof item === 'object' && !Array.isArray(item));
+};
 
-        if (!campaignId || !titulo) {
-            return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
-        }
-
-    const baseSlug = slugify(titulo, { lower: true, strict: true });
-    const slug = `${baseSlug}-${uuidv4()}`;
-
-        const newForm = await FormService.createForm(campaignId, {
-            titulo,
-            descripcion,
-            diseño,
-            configuraciones,
-            slug
+const mergeDeep = (target, source) => {
+    let output = { ...target };
+    if (isObject(target) && isObject(source)) {
+        Object.keys(source).forEach(key => {
+            if (isObject(source[key])) {
+                if (!(key in target)) {
+                    Object.assign(output, { [key]: source[key] });
+                } else {
+                    output[key] = mergeDeep(target[key], source[key]);
+                }
+            } else {
+                Object.assign(output, { [key]: source[key] });
+            }
         });
-
-    const shareUrl = `https://value-cx.com/forms/${slug}`;
-    const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
-
-        await FormSharesModel.create({
-            form_id: newForm.id,
-            tipo: 'public',
-            url_generada: shareUrl,
-            configuracion: configuraciones
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Formulario creado exitosamente.',
-            data: { ...newForm, shareUrl, embedCode }
-        });
-    } catch (error) {
-        next(error);
     }
+    return output;
 };
 
-const getFormsByCampaign = async (req, res, next) => {
-    try {
-        const campaignId = req.params.campaignId || req.query.campaignId;
+const FormService = {
+    async createForm(campaignId, formData) {
+        try {
+            formData.campaign_id = campaignId;
 
-        if (!campaignId) {
-            return res.status(400).json({ success: false, message: 'El ID de la campaña es obligatorio.' });
+            if (!formData.slug) {
+                const baseSlug = slugify(formData.titulo, { lower: true, strict: true });
+                formData.slug = `${baseSlug}-${uuidv4()}`;
+            }
+
+            return await FormModel.create(formData);
+        } catch (error) {
+            console.error('Error en createForm:', error);
+            throw error;
         }
+    },
 
-        const forms = await FormService.getFormsByCampaign(campaignId);
-        res.status(200).json({ success: true, data: forms });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const getFormById = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const form = await FormService.getFormById(id);
-        res.status(200).json({ success: true, data: form });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const updateForm = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const updatedForm = await FormService.updateForm(id, req.body);
-        res.status(200).json({ success: true, data: updatedForm });
-    } catch (error) {
-        next(error);
-    }
-};
-
-const getFormBySlug = async (req, res, next) => {
-    try {
-        const { slug } = req.params;
-        const form = await FormService.getFormBySlug(slug);
-        
-        if (!form) {
-            return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
+    async getFormsByCampaign(campaignId) {
+        try {
+            return await FormModel.findByCampaignId(campaignId);
+        } catch (error) {
+            console.error('Error en getFormsByCampaign:', error);
+            throw error;
         }
+    },
+    
+    async getFormById(formId) {
+        try {
+            const form = await FormModel.findById(formId);
+            if (!form) {
+                throw createError(404, 'Formulario no encontrado.');
+            }
+            // Obtener las preguntas del formulario
+            try {
+                const QuestionModel = require('../questions/questions.model');
+                const preguntas = await QuestionModel.findByFormId(form.id);
+                return {
+                    ...form,
+                    preguntas: preguntas || []
+                };
+            } catch (questionError) {
+                console.log('⚠ Error obteniendo preguntas, continuando sin ellas:', questionError.message);
+                return {
+                    ...form,
+                    preguntas: []
+                };
+            }
+        } catch (error) {
+            console.error('Error en getFormById:', error);
+            throw error;
+        }
+    },
 
-        // Mapear las preguntas al formato esperado por el frontend
-        if (form.preguntas) {
-            form.preguntas = form.preguntas.map(pregunta => ({
-                id: pregunta.id,
-                titulo: pregunta.titulo,
-                descripcion: pregunta.descripcion || '',
-                tipo_id: pregunta.question_type_id,
-                es_obligatorio: pregunta.es_obligatorio,
-                posicion_orden: pregunta.posicion_orden,
-                opciones: pregunta.opciones || [],
-                validaciones: pregunta.validaciones || {},
-                configuraciones: pregunta.configuraciones || {}
-            }));
+    async getFormBySlug(slug) {
+        try {
+            console.log('🔍 Buscando formulario con slug:', slug);
             
-            // Ordenar preguntas por posicion_orden
-            form.preguntas.sort((a, b) => a.posicion_orden - b.posicion_orden);
+            const form = await FormModel.findBySlug(slug);
+            if (!form) {
+                throw createError(404, 'Formulario no encontrado.');
+            }
+            
+            // Obtener las preguntas del formulario
+            try {
+                const QuestionModel = require('../questions/questions.model');
+                const preguntas = await QuestionModel.findByFormId(form.id);
+                
+                return {
+                    ...form,
+                    preguntas: preguntas || []
+                };
+            } catch (questionError) {
+                console.log('⚠ Error obteniendo preguntas, continuando sin ellas:', questionError.message);
+                return {
+                    ...form,
+                    preguntas: []
+                };
+            }
+        } catch (error) {
+            console.error('❌ Error en getFormBySlug:', error);
+            throw error;
+        }
+    },
+
+    async updateForm(formId, formData) {
+        try {
+            const existingForm = await this.getFormById(formId);
+
+            const dataToUpdate = {};
+            
+            if (formData.titulo) dataToUpdate.titulo = formData.titulo;
+            if (formData.descripcion) dataToUpdate.descripcion = formData.descripcion;
+            if (formData.estado) dataToUpdate.estado = formData.estado;
+
+            if (formData.diseño) {
+                const existingDiseño = existingForm.diseño || {};
+                dataToUpdate.diseño = mergeDeep(existingDiseño, formData.diseño);
+            }
+
+            if (formData.configuraciones) {
+                const existingConfig = existingForm.configuraciones || {};
+                dataToUpdate.configuraciones = mergeDeep(existingConfig, formData.configuraciones);
+            }
+
+            if (Object.keys(dataToUpdate).length === 0) {
+                return existingForm;
+            }
+
+            return await FormModel.update(formId, dataToUpdate);
+        } catch (error) {
+            console.error('Error en updateForm:', error);
+            throw error;
+        }
+    },
+
+    async deleteForm(formId) {
+        try {
+            const form = await this.getFormById(formId);
+            const pool = require('../../config/db');
+            const query = 'DELETE FROM forms WHERE id = $1 RETURNING *;';
+            const { rows } = await pool.query(query, [formId]);
+            return rows[0];
+        } catch (error) {
+            console.error('Error en deleteForm:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Actualiza las preguntas de un formulario: crea nuevas, actualiza existentes y elimina las que ya no están.
+     * @param {number|string} formId
+     * @param {Array} preguntas
+     */
+    async updateFormQuestions(formId, preguntas) {
+        const QuestionModel = require('../questions/questions.model');
+        const pool = require('../../config/db');
+        // Obtener preguntas actuales
+        const preguntasActuales = await QuestionModel.findByFormId(formId);
+        const preguntasActualesMap = new Map(preguntasActuales.map(q => [q.id, q]));
+
+        // IDs de las preguntas recibidas
+        const idsRecibidos = new Set(preguntas.filter(q => q.id).map(q => q.id));
+        // Eliminar preguntas que ya no están
+        for (const preguntaActual of preguntasActuales) {
+            if (!idsRecibidos.has(preguntaActual.id)) {
+                await QuestionModel.delete(preguntaActual.id);
+            }
         }
 
-        res.status(200).json({ success: true, data: form });
-    } catch (error) {
-        next(error);
+        // Procesar preguntas recibidas
+        const resultado = [];
+        for (const pregunta of preguntas) {
+            // Si tiene id, actualizar
+            if (pregunta.id && preguntasActualesMap.has(pregunta.id)) {
+                const dataToUpdate = {
+                    titulo: pregunta.titulo,
+                    descripcion: pregunta.descripcion,
+                    question_type_id: pregunta.tipo_id || pregunta.question_type_id,
+                    es_obligatorio: pregunta.es_obligatorio,
+                    posicion_orden: pregunta.posicion_orden,
+                    configuraciones: pregunta.configuraciones,
+                    validaciones: pregunta.validaciones,
+                };
+                const updated = await QuestionModel.update(pregunta.id, dataToUpdate);
+                resultado.push(updated);
+            } else {
+                // Si no tiene id, crear nueva
+                const nuevaPregunta = {
+                    form_id: formId,
+                    titulo: pregunta.titulo,
+                    descripcion: pregunta.descripcion,
+                    question_type_id: pregunta.tipo_id || pregunta.question_type_id,
+                    es_obligatorio: pregunta.es_obligatorio,
+                    posicion_orden: pregunta.posicion_orden,
+                    configuraciones: pregunta.configuraciones,
+                    validaciones: pregunta.validaciones,
+                };
+                const creada = await QuestionModel.create(nuevaPregunta);
+                resultado.push(creada);
+            }
+        }
+        // Devolver el nuevo listado de preguntas
+        return await QuestionModel.findByFormId(formId);
+    },
+
+    async generateEmbedCodesForExistingForms() {
+        try {
+            const pool = require('../../config/db');
+            const query = 'SELECT * FROM forms WHERE slug IS NOT NULL;';
+            const { rows } = await pool.query(query);
+
+            const updatedForms = rows.map(form => {
+                const shareUrl = `${process.env.BASE_URL || 'https://value-cx.com'}/forms/${form.slug}`;
+                const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
+
+                return {
+                    id: form.id,
+                    shareUrl,
+                    embedCode
+                };
+            });
+
+            return updatedForms;
+        } catch (error) {
+            console.error('Error en generateEmbedCodesForExistingForms:', error);
+            throw error;
+        }
+    },
+
+    async addForm(formData) {
+        try {
+            if (!formData.titulo || !formData.descripcion || !formData.campaign_id) {
+                throw new Error('Faltan campos obligatorios: titulo, descripcion o campaign_id');
+            }
+
+            return await FormModel.create({
+                titulo: formData.titulo,
+                descripcion: formData.descripcion,
+                campaign_id: formData.campaign_id,
+                diseño: formData.diseño || {},
+                configuraciones: formData.configuraciones || {},
+            });
+        } catch (error) {
+            throw error;
+        }
     }
 };
 
-const deleteForm = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const deletedForm = await FormService.deleteForm(id);
-
-        if (!deletedForm) {
-            return res.status(404).json({ success: false, message: 'Formulario no encontrado.' });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Formulario eliminado exitosamente.',
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-async function addForm(formData) {
-    try {
-        if (!formData.titulo || !formData.descripcion || !formData.campaign_id) {
-            throw new Error('Faltan campos obligatorios: titulo, descripcion o campaign_id');
-        }
-
-        const newForm = await Form.create({
-            titulo: formData.titulo,
-            descripcion: formData.descripcion,
-            campaign_id: formData.campaign_id,
-            diseño: formData.diseño || {},
-            configuraciones: formData.configuraciones || {},
-        });
-
-        return newForm;
-    } catch (error) {
-        throw error;
-    }
-}
-
-module.exports = {
-    createForm,
-    getFormsByCampaign,
-    getFormById,
-    updateForm,
-    getFormBySlug,
-    deleteForm,
-    addForm,
-};
+module.exports = FormService;

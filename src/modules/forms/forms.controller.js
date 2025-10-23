@@ -2,7 +2,6 @@ const FormService = require('./forms.service');
 const FormSharesModel = require('../forms_shared/forms_shared.model');
 const { v4: uuidv4 } = require('uuid');
 const slugify = require('slugify');
-const { Form } = require('./forms.model');
 
 const createForm = async (req, res, next) => {
     try {
@@ -130,21 +129,57 @@ const deleteForm = async (req, res, next) => {
     }
 };
 
-async function addForm(formData) {
+const generateEmbedCodesForExistingForms = async (req, res, next) => {
     try {
-        if (!formData.titulo || !formData.descripcion || !formData.campaign_id) {
-            throw new Error('Faltan campos obligatorios: titulo, descripcion o campaign_id');
+        const campaignId = req.params.campaignId || req.query.campaignId;
+
+        if (!campaignId) {
+            return res.status(400).json({ success: false, message: 'El ID de la campaña es obligatorio.' });
         }
 
-        const newForm = await Form.create({
-            titulo: formData.titulo,
-            descripcion: formData.descripcion,
-            campaign_id: formData.campaign_id,
-            diseño: formData.diseño || {},
-            configuraciones: formData.configuraciones || {},
+        const forms = await FormService.getFormsByCampaign(campaignId);
+
+        const updatedForms = forms.map(form => {
+            const shareUrl = `${process.env.BASE_URL || 'https://value-cx.com'}/forms/${form.slug}`;
+            const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
+
+            return {
+                id: form.id,
+                titulo: form.titulo,
+                slug: form.slug,
+                shareUrl,
+                embedCode
+            };
         });
 
-        return newForm;
+        res.status(200).json({
+            success: true,
+            data: updatedForms
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+// Nuevo endpoint: actualizar preguntas de un formulario
+const updateFormQuestions = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const preguntas = req.body.preguntas;
+        if (!Array.isArray(preguntas)) {
+            return res.status(400).json({ success: false, message: 'Se requiere un array de preguntas.' });
+        }
+        const result = await FormService.updateFormQuestions(id, preguntas);
+        res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+};
+
+async function addForm(formData) {
+    try {
+        return await FormService.addForm(formData);
     } catch (error) {
         throw error;
     }
@@ -153,9 +188,11 @@ async function addForm(formData) {
 module.exports = {
     createForm,
     getFormsByCampaign,
+    updateFormQuestions,
     getFormById,
     updateForm,
     getFormBySlug,
     deleteForm,
     addForm,
+    generateEmbedCodesForExistingForms,
 };
