@@ -1,34 +1,33 @@
 const jwt = require('jsonwebtoken');
+const util = require('util');
 
-const verifyToken = (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; 
+const verifyAsync = util.promisify(jwt.verify);
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token de acceso requerido'
-      });
+const verifyToken = async (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1]; 
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token de acceso requerido.'
+            });
+        }
+
+        const decoded = await verifyAsync(token, process.env.JWT_SECRET);
+
+        req.user = decoded;
+        
+        next();
+
+    } catch (error) {
+        const authError = {
+            status: 403,
+            message: 'Token inválido o expirado.'
+        };
+        next(authError);
     }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return res.status(403).json({
-          success: false,
-          message: 'Token inválido'
-        });
-      }
-
-      req.user = decoded;
-      next();
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Error interno del servidor'
-    });
-  }
 };
 
-module.exports = { verifyToken };
+module.exports = verifyToken;
