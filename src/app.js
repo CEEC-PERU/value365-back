@@ -55,6 +55,8 @@ loadAndRegisterRoutes('/api/campaigns', './modules/campaigns/campaigns.routes');
 loadAndRegisterRoutes('/api/forms', './modules/forms/forms.routes');
 loadAndRegisterRoutes('/api/v1/campaigns/:campaignId/forms', './modules/forms/forms.routes');
 loadAndRegisterRoutes('/api/v1/forms/:formId/questions', './modules/questions/questions.routes');
+// --- WhatsApp Chattigo ---
+loadAndRegisterRoutes('/api/whatsapp', './modules/whatsapp_chattigo/chattigo.routes');
 
 
 // --- WEBHOOKS DE WHATSAPP ---

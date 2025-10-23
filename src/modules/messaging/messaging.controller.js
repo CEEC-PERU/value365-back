@@ -123,6 +123,48 @@ const sendCampaignController = async (req, res) => {
   }
 };
 
+const getSentMessagesController = async (req, res) => {
+  try {0
+    const { fromdate, enddate, page, pagesize } = req.query;
+    const result = await messagingService.getSentMessages({ fromDate: fromdate, endDate: enddate, page: Number(page) || 1, pageSize: Number(pagesize) || 100 });
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error in getSentMessagesController:', error && (error.message || (error.response && error.response.status)));
+    // Si está habilitado el mock, devolver un set de datos de ejemplo para desarrollo
+    const useMock = process.env.MOCK_SMS_SENT === 'true' || process.env.USE_MOCK_SMS_SENT === 'true';
+    if (useMock) {
+      console.warn('MOCK_SMS_SENT habilitado: devolviendo datos de ejemplo para mensajes enviados.');
+      const sample = {
+        Data: [
+          {
+            MobileNumber: '51923190931',
+            SenderId: process.env.SMS_SENDER_ID || '19022422',
+            Message: 'Responde esta encuesta: https://value-cx.com/forms/nuevo-5fb0b03c-2520-4200-a947-1994903901e0',
+            Date: new Date().toISOString(),
+            DeliveredAt: new Date().toISOString(),
+            MessageErrorDescription: 'DELIVRD',
+            MessageErrorCode: 0
+          },
+          {
+            MobileNumber: '51987654321',
+            SenderId: process.env.SMS_SENDER_ID || '19022422',
+            Message: 'Gracias por tu compra. Tu pedido #12345 está en camino.',
+            Date: new Date().toISOString(),
+            DeliveredAt: new Date().toISOString(),
+            MessageErrorDescription: 'DELIVRD',
+            MessageErrorCode: 0
+          }
+        ]
+      };
+      return res.status(200).json({ success: true, data: sample });
+    }
+
+    // Si no mockeamos, devolver un 502 con mensaje claro para el frontend
+    res.status(502).json({ success: false, message: 'No se pudo obtener la lista de mensajes desde el proveedor de SMS.', details: error && (error.message || (error.response && error.response.statusText)) });
+  }
+};
+
 module.exports = {
   sendCampaignController,
+  getSentMessagesController,
 };
