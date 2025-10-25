@@ -3,6 +3,10 @@ const router = express.Router({ mergeParams: true });
 const formsController = require('./forms.controller');
 const jwtMiddleware = require('../auth/jwt.middleware');
 
+// Endpoint para contar formularios por campaña
+router.route('/count/:campaignId')
+    .get(formsController.countFormsByCampaign);
+
 // RUTAS PÚBLICAS (SIN AUTENTICACIÓN) - DEBEN IR ANTES DEL MIDDLEWARE JWT
 router.route('/public/:slug')
     .get(formsController.getFormBySlug);

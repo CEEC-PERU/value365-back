@@ -26,6 +26,9 @@ const mergeDeep = (target, source) => {
 };
 
 const FormService = {
+    async countFormsByCampaign(campaignId) {
+        return await FormModel.countByCampaignId(campaignId);
+    },
     async createForm(campaignId, formData) {
         try {
             formData.campaign_id = campaignId;

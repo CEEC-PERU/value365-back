@@ -1,3 +1,16 @@
+// Endpoint para contar formularios por campaña
+const countFormsByCampaign = async (req, res, next) => {
+    try {
+        const campaignId = req.params.campaignId;
+        if (!campaignId) {
+            return res.status(400).json({ success: false, message: 'El ID de la campaña es obligatorio.' });
+        }
+        const count = await FormService.countFormsByCampaign(campaignId);
+        res.status(200).json({ success: true, count });
+    } catch (error) {
+        next(error);
+    }
+};
 const FormService = require('./forms.service');
 const FormSharesModel = require('../forms_shared/forms_shared.model');
 const { v4: uuidv4 } = require('uuid');
@@ -195,4 +208,5 @@ module.exports = {
     deleteForm,
     addForm,
     generateEmbedCodesForExistingForms,
+    countFormsByCampaign,
 };

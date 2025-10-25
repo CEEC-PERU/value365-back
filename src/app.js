@@ -10,8 +10,9 @@ const loadAndRegisterRoutes = (path, filePath) => {
     try {
         const router = require(filePath);
         app.use(path, router);
+        console.log(`✅ Ruta registrada: ${path} -> ${filePath}`);
     } catch (error) {
-        console.error(`ERROR: No se pudieron cargar las rutas para: ${path}`);
+        console.error(`❌ ERROR: No se pudieron cargar las rutas para: ${path}`);
         console.error(`   En el archivo: ${filePath}`);
         console.error('   Razón:', error.message);
     }

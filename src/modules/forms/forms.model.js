@@ -1,6 +1,11 @@
 const pool = require('../../config/db');
 
 const FormModel = {
+    async countByCampaignId(campaignId) {
+        const query = 'SELECT COUNT(*) FROM forms WHERE campaign_id = $1;';
+        const { rows } = await pool.query(query, [campaignId]);
+        return parseInt(rows[0].count, 10);
+    },
     async create(formData) {
         const { campaign_id, titulo, descripcion, slug } = formData;
         const diseño = JSON.stringify(formData.diseño || {});
