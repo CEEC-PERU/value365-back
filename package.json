@@ -20,6 +20,8 @@
   "homepage": "https://github.com/CEEC-PERU/value365-back#readme",
   "description": "",
   "dependencies": {
+    "@google/genai": "^1.28.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -31,6 +33,7 @@
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "slugify": "^1.6.6",
+    "twilio": "^5.10.4",
     "uuid": "^13.0.0",
     "xlsx": "^0.18.5"
   },

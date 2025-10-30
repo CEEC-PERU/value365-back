@@ -43,6 +43,7 @@ app.get('/', (req, res) => {
 });
 
 loadAndRegisterRoutes('/api/auth', './modules/auth/auth.routes');
+loadAndRegisterRoutes('/api/voicebot', './modules/voicebot/voicebot.routes');
 loadAndRegisterRoutes('/api/media', './modules/media/media.routes');
 loadAndRegisterRoutes('/api/users', './modules/users/users.routes');
 loadAndRegisterRoutes('/api/messaging', './modules/messaging/messaging.routes');
