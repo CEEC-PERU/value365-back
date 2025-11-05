@@ -3,9 +3,6 @@ const IVRNodeModel = require('./ivr_nodes.model');
 const IVRCallModel = require('./ivr_calls.model');
 
 const IVRService = {
-  /**
-   * CRUD de Flujos IVR
-   */
   async createFlow(flowData) {
     return await IVRFlowModel.create(flowData);
   },
@@ -27,7 +24,6 @@ const IVRService = {
   },
 
   async deleteFlow(id) {
-    // Eliminar nodos asociados primero
     const nodes = await IVRNodeModel.findByFlowId(id);
     for (const node of nodes) {
       await IVRNodeModel.delete(node.id);
@@ -35,9 +31,6 @@ const IVRService = {
     return await IVRFlowModel.delete(id);
   },
 
-  /**
-   * CRUD de Nodos IVR
-   */
   async createNode(nodeData) {
     return await IVRNodeModel.create(nodeData);
   },
@@ -62,9 +55,6 @@ const IVRService = {
     return await IVRNodeModel.bulkUpdate(nodes);
   },
 
-  /**
-   * Gestión de Llamadas
-   */
   async createCall(callData) {
     return await IVRCallModel.create(callData);
   },
@@ -97,9 +87,6 @@ const IVRService = {
     return await IVRCallModel.getStats(filters);
   },
 
-  /**
-   * Lógica de ejecución del IVR
-   */
   async executeNode(nodeId, userInput = null, callContext = {}) {
     const node = await IVRNodeModel.findById(nodeId);
     if (!node) {
@@ -186,7 +173,6 @@ const IVRService = {
         break;
 
       case 'servicio':
-        // Llamar a un servicio externo
         response.actions.push({
           action: 'webhook',
           url: config.servicioUrl || '',
@@ -202,7 +188,6 @@ const IVRService = {
         });
     }
 
-    // Determinar el siguiente nodo basado en la entrada del usuario
     if (!response.nextNode && userInput && node.connections) {
       const connections = typeof node.connections === 'string' 
         ? JSON.parse(node.connections) 
@@ -214,9 +199,6 @@ const IVRService = {
     return response;
   },
 
-  /**
-   * Evaluar condición para nodo de evaluación
-   */
   evaluateCondition(condition, userInput, callContext) {
     const { field, operator, value } = condition;
     const actualValue = callContext[field] || userInput;
@@ -237,12 +219,8 @@ const IVRService = {
     }
   },
 
-  /**
-   * Obtener el nodo inicial de un flujo
-   */
   async getInitialNode(flowId) {
     const nodes = await IVRNodeModel.findByFlowId(flowId);
-    // Buscar el nodo marcado como "home" o el primero por position
     const homeNode = nodes.find(n => n.node_type === 'home' || n.position === 0);
     return homeNode || nodes[0];
   }

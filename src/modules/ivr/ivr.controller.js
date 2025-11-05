@@ -1,14 +1,6 @@
 const IVRService = require('./ivr.service');
 
 const IVRController = {
-  /**
-   * ========== FLUJOS IVR ==========
-   */
-
-  /**
-   * Crear un nuevo flujo IVR
-   * POST /api/ivr/flows
-   */
   async createFlow(req, res, next) {
     try {
       const { name, description, campaign_id, is_active } = req.body;
@@ -39,10 +31,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener todos los flujos IVR
-   * GET /api/ivr/flows
-   */
   async getFlows(req, res, next) {
     try {
       const { campaign_id, user_id, is_active } = req.query;
@@ -62,10 +50,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener un flujo por ID
-   * GET /api/ivr/flows/:id
-   */
   async getFlowById(req, res, next) {
     try {
       const { id } = req.params;
@@ -88,10 +72,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener un flujo con todos sus nodos
-   * GET /api/ivr/flows/:id/complete
-   */
   async getFlowWithNodes(req, res, next) {
     try {
       const { id } = req.params;
@@ -114,10 +94,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Actualizar un flujo IVR
-   * PUT /api/ivr/flows/:id
-   */
   async updateFlow(req, res, next) {
     try {
       const { id } = req.params;
@@ -142,10 +118,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Eliminar un flujo IVR
-   * DELETE /api/ivr/flows/:id
-   */
   async deleteFlow(req, res, next) {
     try {
       const { id } = req.params;
@@ -169,14 +141,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * ========== NODOS IVR ==========
-   */
-
-  /**
-   * Crear un nuevo nodo
-   * POST /api/ivr/nodes
-   */
   async createNode(req, res, next) {
     try {
       const nodeData = req.body;
@@ -200,10 +164,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener nodos de un flujo
-   * GET /api/ivr/flows/:flowId/nodes
-   */
   async getNodesByFlowId(req, res, next) {
     try {
       const { flowId } = req.params;
@@ -219,10 +179,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener un nodo por ID
-   * GET /api/ivr/nodes/:id
-   */
   async getNodeById(req, res, next) {
     try {
       const { id } = req.params;
@@ -245,10 +201,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Actualizar un nodo
-   * PUT /api/ivr/nodes/:id
-   */
   async updateNode(req, res, next) {
     try {
       const { id } = req.params;
@@ -273,10 +225,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Actualizar múltiples nodos
-   * PUT /api/ivr/nodes/bulk
-   */
   async bulkUpdateNodes(req, res, next) {
     try {
       const { nodes } = req.body;
@@ -300,10 +248,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Eliminar un nodo
-   * DELETE /api/ivr/nodes/:id
-   */
   async deleteNode(req, res, next) {
     try {
       const { id } = req.params;
@@ -327,14 +271,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * ========== LLAMADAS ==========
-   */
-
-  /**
-   * Obtener todas las llamadas
-   * GET /api/ivr/calls
-   */
   async getCalls(req, res, next) {
     try {
       const { flow_id, campaign_id, status, phone_number, date_from, date_to, limit } = req.query;
@@ -358,10 +294,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener una llamada por ID
-   * GET /api/ivr/calls/:id
-   */
   async getCallById(req, res, next) {
     try {
       const { id } = req.params;
@@ -384,10 +316,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener interacciones de una llamada
-   * GET /api/ivr/calls/:id/interactions
-   */
   async getCallInteractions(req, res, next) {
     try {
       const { id } = req.params;
@@ -403,10 +331,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Obtener estadísticas de llamadas
-   * GET /api/ivr/stats
-   */
   async getCallStats(req, res, next) {
     try {
       const { flow_id, campaign_id, date_from, date_to } = req.query;
@@ -427,20 +351,11 @@ const IVRController = {
     }
   },
 
-  /**
-   * ========== WEBHOOKS TWILIO ==========
-   */
-
-  /**
-   * Webhook para llamadas entrantes de Twilio
-   * POST /api/ivr/webhook/incoming
-   */
   async handleIncomingCall(req, res, next) {
     try {
       const { CallSid, From, To, CallStatus } = req.body;
       const { flow_id } = req.query;
 
-      // Crear registro de llamada
       const call = await IVRService.createCall({
         flow_id,
         phone_number: From,
@@ -449,7 +364,6 @@ const IVRController = {
         status: 'initiated'
       });
 
-      // Obtener el nodo inicial del flujo
       const initialNode = await IVRService.getInitialNode(flow_id);
 
       if (!initialNode) {
@@ -462,10 +376,8 @@ const IVRController = {
         `);
       }
 
-      // Ejecutar el primer nodo
       const nodeResponse = await IVRService.executeNode(initialNode.id, null, {});
 
-      // Generar TwiML
       const twiml = this.generateTwiML(nodeResponse, call.id);
 
       res.type('text/xml').send(twiml);
@@ -481,10 +393,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Webhook para recibir entrada del usuario
-   * POST /api/ivr/webhook/gather
-   */
   async handleGatherInput(req, res, next) {
     try {
       const { CallSid, Digits, SpeechResult } = req.body;
@@ -492,12 +400,10 @@ const IVRController = {
 
       const userInput = Digits || SpeechResult;
 
-      // Actualizar llamada
       await IVRService.updateCall(call_id, {
         status: 'in_progress'
       });
 
-      // Registrar interacción
       await IVRService.logCallInteraction(call_id, {
         node_id,
         node_type: 'input',
@@ -505,7 +411,6 @@ const IVRController = {
         system_response: null
       });
 
-      // Obtener nodo actual y ejecutar
       const node = await IVRService.getNodeById(node_id);
       const connections = typeof node.connections === 'string' 
         ? JSON.parse(node.connections) 
@@ -523,10 +428,8 @@ const IVRController = {
         `);
       }
 
-      // Ejecutar siguiente nodo
       const nodeResponse = await IVRService.executeNode(nextNodeId, userInput, {});
 
-      // Generar TwiML
       const twiml = this.generateTwiML(nodeResponse, call_id);
 
       res.type('text/xml').send(twiml);
@@ -542,10 +445,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Webhook para status de llamada
-   * POST /api/ivr/webhook/status
-   */
   async handleCallStatus(req, res, next) {
     try {
       const { CallSid, CallStatus, CallDuration } = req.body;
@@ -569,9 +468,6 @@ const IVRController = {
     }
   },
 
-  /**
-   * Generar TwiML para respuesta de Twilio
-   */
   generateTwiML(nodeResponse, callId) {
     let twiml = '<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n';
 

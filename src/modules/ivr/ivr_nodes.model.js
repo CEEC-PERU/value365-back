@@ -1,164 +1,97 @@
 const pool = require('../../config/db');
 
+const NODE_TYPES = {
+  MENU_OPCIONES: 'menu_opciones',
+  PREGUNTA: 'pregunta',
+  TEXTO: 'texto',
+  DESPEDIDA: 'despedida',
+  DERIVAR_AGENTE: 'derivar_agente',
+  DERIVAR_WSP: 'derivar_wsp',
+  ENVIAR_ARCHIVO: 'enviar_archivo',
+  EVAL_CONDICION: 'eval_condicion',
+  SERVICIO: 'servicio'
+};
+
 const IVRNodeModel = {
-  /**
-   * Tipos de nodos disponibles
-   */
-  NODE_TYPES: {
-    MENU: 'menu_opciones',
-    PREGUNTA: 'pregunta',
-    TEXTO: 'texto',
-    DESPEDIDA: 'despedida',
-    DERIVAR_AGENTE: 'derivar_agente',
-    DERIVAR_WSP: 'derivar_wsp',
-    ENVIAR_ARCHIVO: 'enviar_archivo',
-    EVAL_CONDICION: 'eval_condicion',
-    SERVICIO: 'servicio'
-  },
+  NODE_TYPES,
 
-  /**
-   * Crear un nuevo nodo
-   */
-  async create(nodeData) {
-    const {
-      flow_id,
-      node_type,
-      node_name,
-      position,
-      config = {},
-      connections = {}
-    } = nodeData;
-
+  async create({ flow_id, node_type, node_name, position_x = 0, position_y = 0, config = {}, connections = {} }) {
     const query = `
-      INSERT INTO ivr_nodes (flow_id, node_type, node_name, position, config, connections)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO ivr_nodes (flow_id, node_type, node_name, position_x, position_y, config, connections)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const values = [
-      flow_id,
-      node_type,
-      node_name,
-      position || 0,
-      JSON.stringify(config),
-      JSON.stringify(connections)
-    ];
-
+    const values = [flow_id, node_type, node_name, position_x, position_y, JSON.stringify(config), JSON.stringify(connections)];
     const result = await pool.query(query, values);
     return result.rows[0];
   },
 
-  /**
-   * Obtener todos los nodos de un flujo
-   */
   async findByFlowId(flowId) {
     const query = 'SELECT * FROM ivr_nodes WHERE flow_id = $1 ORDER BY position';
     const result = await pool.query(query, [flowId]);
     return result.rows;
   },
 
-  /**
-   * Obtener un nodo por ID
-   */
   async findById(id) {
     const query = 'SELECT * FROM ivr_nodes WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rows[0];
   },
 
-  /**
-   * Actualizar un nodo
-   */
   async update(id, updates) {
-    const fields = [];
-    const values = [];
-    let paramIndex = 1;
+    const allowedFields = ['node_name', 'position_x', 'position_y', 'config', 'connections'];
+    const updateFields = [];
+    const params = [];
+    let paramCounter = 1;
 
-    Object.keys(updates).forEach(key => {
-      if (updates[key] !== undefined) {
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
         if (key === 'config' || key === 'connections') {
-          fields.push(`${key} = $${paramIndex}`);
-          values.push(JSON.stringify(updates[key]));
+          updateFields.push(`${key} = $${paramCounter++}`);
+          params.push(JSON.stringify(value));
         } else {
-          fields.push(`${key} = $${paramIndex}`);
-          values.push(updates[key]);
+          updateFields.push(`${key} = $${paramCounter++}`);
+          params.push(value);
         }
-        paramIndex++;
       }
-    });
-
-    if (fields.length === 0) {
-      return null;
     }
 
-    fields.push(`updated_at = NOW()`);
-    values.push(id);
+    if (updateFields.length === 0) {
+      return this.findById(id);
+    }
 
+    params.push(id);
     const query = `
-      UPDATE ivr_nodes
-      SET ${fields.join(', ')}
-      WHERE id = $${paramIndex}
+      UPDATE ivr_nodes 
+      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${paramCounter}
       RETURNING *
     `;
 
-    const result = await pool.query(query, values);
+    const result = await pool.query(query, params);
     return result.rows[0];
   },
 
-  /**
-   * Eliminar un nodo
-   */
   async delete(id) {
     const query = 'DELETE FROM ivr_nodes WHERE id = $1 RETURNING *';
     const result = await pool.query(query, [id]);
     return result.rows[0];
   },
 
-  /**
-   * Actualizar múltiples nodos (para reorganización)
-   */
   async bulkUpdate(nodes) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      const results = [];
+      const updatedNodes = [];
       for (const node of nodes) {
         const { id, ...updates } = node;
-        const fields = [];
-        const values = [];
-        let paramIndex = 1;
-
-        Object.keys(updates).forEach(key => {
-          if (updates[key] !== undefined) {
-            if (key === 'config' || key === 'connections') {
-              fields.push(`${key} = $${paramIndex}`);
-              values.push(JSON.stringify(updates[key]));
-            } else {
-              fields.push(`${key} = $${paramIndex}`);
-              values.push(updates[key]);
-            }
-            paramIndex++;
-          }
-        });
-
-        if (fields.length > 0) {
-          fields.push(`updated_at = NOW()`);
-          values.push(id);
-
-          const query = `
-            UPDATE ivr_nodes
-            SET ${fields.join(', ')}
-            WHERE id = $${paramIndex}
-            RETURNING *
-          `;
-
-          const result = await client.query(query, values);
-          results.push(result.rows[0]);
-        }
+        const result = await this.update(id, updates);
+        updatedNodes.push(result);
       }
 
       await client.query('COMMIT');
-      return results;
+      return updatedNodes;
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -167,17 +100,17 @@ const IVRNodeModel = {
     }
   },
 
-  /**
-   * Obtener el nodo inicial (home) de un flujo
-   */
   async findHomeNode(flowId) {
-    const query = `
-      SELECT * FROM ivr_nodes 
-      WHERE flow_id = $1 AND node_type = 'home'
-      LIMIT 1
-    `;
+    const query = 'SELECT * FROM ivr_nodes WHERE flow_id = $1 AND node_type = \'home\' LIMIT 1';
     const result = await pool.query(query, [flowId]);
-    return result.rows[0];
+    
+    if (result.rows.length > 0) {
+      return result.rows[0];
+    }
+
+    const fallbackQuery = 'SELECT * FROM ivr_nodes WHERE flow_id = $1 ORDER BY position LIMIT 1';
+    const fallbackResult = await pool.query(fallbackQuery, [flowId]);
+    return fallbackResult.rows[0];
   }
 };
 
