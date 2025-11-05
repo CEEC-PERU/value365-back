@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const IVRController = require('./ivr.controller');
-const { verifyToken } = require('../auth/jwt.middleware');
+const verifyToken = require('../auth/jwt.middleware');
 
 router.post('/flows', verifyToken, IVRController.createFlow);
 router.get('/flows', verifyToken, IVRController.getFlows);

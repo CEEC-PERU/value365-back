@@ -161,23 +161,36 @@ const FormService = {
     async updateFormQuestions(formId, preguntas) {
         const QuestionModel = require('../questions/questions.model');
         const pool = require('../../config/db');
-        // Obtener preguntas actuales
-        const preguntasActuales = await QuestionModel.findByFormId(formId);
+        
+        const preguntasActuales = await QuestionModel.findAllByFormId(formId);
         const preguntasActualesMap = new Map(preguntasActuales.map(q => [q.id, q]));
 
-        // IDs de las preguntas recibidas
         const idsRecibidos = new Set(preguntas.filter(q => q.id).map(q => q.id));
-        // Eliminar preguntas que ya no están
+        
         for (const preguntaActual of preguntasActuales) {
-            if (!idsRecibidos.has(preguntaActual.id)) {
-                await QuestionModel.delete(preguntaActual.id);
+            if (!idsRecibidos.has(preguntaActual.id) && preguntaActual.posicion_orden < 9999) {
+                const checkResponsesQuery = `
+                    SELECT COUNT(*) FROM question_responses 
+                    WHERE question_id = $1
+                `;
+                const { rows } = await pool.query(checkResponsesQuery, [preguntaActual.id]);
+                const hasResponses = parseInt(rows[0].count) > 0;
+                
+                if (hasResponses) {
+                    const dataToUpdate = {
+                        titulo: `[ELIMINADA] ${preguntaActual.titulo}`,
+                        es_obligatorio: false,
+                        posicion_orden: 9999
+                    };
+                    await QuestionModel.update(preguntaActual.id, dataToUpdate);
+                } else {
+                    await QuestionModel.delete(preguntaActual.id);
+                }
             }
         }
 
-        // Procesar preguntas recibidas
         const resultado = [];
         for (const pregunta of preguntas) {
-            // Si tiene id, actualizar
             if (pregunta.id && preguntasActualesMap.has(pregunta.id)) {
                 const dataToUpdate = {
                     titulo: pregunta.titulo,
@@ -191,7 +204,6 @@ const FormService = {
                 const updated = await QuestionModel.update(pregunta.id, dataToUpdate);
                 resultado.push(updated);
             } else {
-                // Si no tiene id, crear nueva
                 const nuevaPregunta = {
                     form_id: formId,
                     titulo: pregunta.titulo,
@@ -206,7 +218,7 @@ const FormService = {
                 resultado.push(creada);
             }
         }
-        // Devolver el nuevo listado de preguntas
+        
         return await QuestionModel.findByFormId(formId);
     },
 
