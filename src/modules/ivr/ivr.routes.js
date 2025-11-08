@@ -22,7 +22,10 @@ router.get('/calls/:id', verifyToken, IVRController.getCallById);
 router.get('/calls/:id/interactions', verifyToken, IVRController.getCallInteractions);
 router.get('/stats', verifyToken, IVRController.getCallStats);
 
+router.post('/iniciar-llamada', verifyToken, IVRController.iniciarLlamada);
+
 router.post('/webhook/incoming', IVRController.handleIncomingCall);
+router.post('/webhook/outbound', IVRController.handleOutboundCall);
 router.post('/webhook/gather', IVRController.handleGatherInput);
 router.post('/webhook/status', IVRController.handleCallStatus);
 
