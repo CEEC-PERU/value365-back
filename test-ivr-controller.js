@@ -1,0 +1,24 @@
+const IVRController = require('./src/modules/ivr/ivr.controller');
+
+console.log('IVRController:', typeof IVRController);
+console.log('Métodos:');
+console.log('- createFlow:', typeof IVRController.createFlow);
+console.log('- getFlows:', typeof IVRController.getFlows);
+console.log('- getFlowById:', typeof IVRController.getFlowById);
+console.log('- getFlowWithNodes:', typeof IVRController.getFlowWithNodes);
+console.log('- updateFlow:', typeof IVRController.updateFlow);
+console.log('- deleteFlow:', typeof IVRController.deleteFlow);
+console.log('- createNode:', typeof IVRController.createNode);
+console.log('- getNodesByFlowId:', typeof IVRController.getNodesByFlowId);
+console.log('- getNodeById:', typeof IVRController.getNodeById);
+console.log('- updateNode:', typeof IVRController.updateNode);
+console.log('- bulkUpdateNodes:', typeof IVRController.bulkUpdateNodes);
+console.log('- deleteNode:', typeof IVRController.deleteNode);
+console.log('- getCalls:', typeof IVRController.getCalls);
+console.log('- getCallById:', typeof IVRController.getCallById);
+console.log('- getCallInteractions:', typeof IVRController.getCallInteractions);
+console.log('- getCallStats:', typeof IVRController.getCallStats);
+console.log('- handleIncomingCall:', typeof IVRController.handleIncomingCall);
+console.log('- handleGatherInput:', typeof IVRController.handleGatherInput);
+console.log('- handleCallStatus:', typeof IVRController.handleCallStatus);
+console.log('- generateTwiML:', typeof IVRController.generateTwiML);

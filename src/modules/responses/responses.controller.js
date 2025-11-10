@@ -2,18 +2,32 @@ const responsesService = require('./responses.service');
 
 const submitResponse = async (req, res) => {
   try {
-    const { surveyId, recipient, answers } = req.body;
-    if (!surveyId || !recipient || !answers) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios para la respuesta.' });
+    const { form_id, session_id, answers } = req.body;
+    
+    if (!form_id || !answers || !Array.isArray(answers)) {
+      return res.status(400).json({ 
+        error: 'Faltan campos obligatorios',
+        details: 'Se requiere: form_id (number), answers (array), session_id (string, opcional)'
+      });
     }
+
     const savedResponse = await responsesService.saveResponse({
-      surveyId,
-      recipient,
+      form_id,
+      session_id: session_id || `session_${Date.now()}`,
       answers,
     });
-    res.status(201).json({ message: '¡Gracias por tu respuesta!', data: savedResponse });
+    
+    res.status(201).json({ 
+      success: true,
+      message: '¡Gracias por tu respuesta!', 
+      data: { form_response_id: savedResponse }
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Hubo un error al procesar tu respuesta.' });
+    console.error('Error al guardar respuesta:', error);
+    res.status(500).json({ 
+      error: 'Hubo un error al procesar tu respuesta.',
+      details: error.message
+    });
   }
 };
 const getResponsesByFormId = async (req, res) => {

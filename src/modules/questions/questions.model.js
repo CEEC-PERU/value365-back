@@ -36,6 +36,17 @@ const QuestionModel = {
         const query = `
             SELECT * FROM questions 
             WHERE form_id = $1 
+            AND posicion_orden < 9999
+            ORDER BY posicion_orden ASC;
+        `;
+        const { rows } = await pool.query(query, [formId]);
+        return rows;
+    },
+
+    async findAllByFormId(formId) {
+        const query = `
+            SELECT * FROM questions 
+            WHERE form_id = $1 
             ORDER BY posicion_orden ASC;
         `;
         const { rows } = await pool.query(query, [formId]);
