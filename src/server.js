@@ -3,4 +3,10 @@ require('dotenv').config();
 
 const PORT = process.env.PORT || 9080;
 
-app.listen(PORT);
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+  console.log(`📋 API IVR disponible en http://localhost:${PORT}/api/ivr`);
+  console.log(`✅ Servidor listo para recibir peticiones`);
+});
+
+module.exports = server;

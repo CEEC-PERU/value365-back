@@ -1,7 +1,28 @@
 const IVRService = require('./ivr.service');
+const IVRConsolidationModel = require('./ivr_consolidations.model');
 const twilio = require('twilio');
 
 const IVRController = {
+  // Health check endpoint público
+  async healthCheck(req, res, next) {
+    try {
+      res.json({
+        success: true,
+        message: 'Sistema IVR funcionando correctamente',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+        endpoints: {
+          flows: 'Gestión de flujos IVR',
+          nodes: 'Gestión de nodos',
+          calls: 'Gestión de llamadas',
+          webhooks: 'Webhooks de Twilio'
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async iniciarLlamada(req, res, next) {
     try {
       const { numeroDestino, flowId, campaignId } = req.body;
@@ -452,6 +473,239 @@ const IVRController = {
     }
   },
 
+  // NUEVAS FUNCIONES PARA MANEJO DE LLAMADAS
+  async createCall(req, res, next) {
+    try {
+      const callData = req.body;
+      const call = await IVRService.createCall(callData);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Llamada creada exitosamente',
+        data: call
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateCallStatus(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      const call = await IVRService.updateCall(id, { status });
+      
+      res.json({
+        success: true,
+        message: 'Estado de llamada actualizado',
+        data: call
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async iniciarLlamada(req, res, next) {
+    try {
+      const { numeroDestino, flowId } = req.body;
+      
+      if (!numeroDestino || !flowId) {
+        return res.status(400).json({
+          success: false,
+          error: 'numeroDestino y flowId son requeridos'
+        });
+      }
+
+      // Crear registro de llamada
+      const call = await IVRService.createCall({
+        flow_id: flowId,
+        phone_number: numeroDestino,
+        call_sid: `MANUAL_${Date.now()}`,
+        direction: 'outbound',
+        status: 'initiated'
+      });
+
+      // Si tienes Twilio configurado, también hacer la llamada real
+      if (process.env.TWILIO_ACCOUNT_SID) {
+        const twilio = require('twilio');
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        const twilioCall = await client.calls.create({
+          to: numeroDestino,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          url: `${process.env.BASE_URL}/api/ivr/webhook/incoming?flow_id=${flowId}&call_id=${call.id}`
+        });
+
+        await IVRService.updateCall(call.id, {
+          call_sid: twilioCall.sid,
+          status: 'calling'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Llamada IVR iniciada',
+        data: call
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Webhook principal para flujos IVR
+  async handleWebhook(req, res, next) {
+    try {
+      const { flowId } = req.params;
+      const { CallSid, From, To, CallStatus } = req.body;
+
+      console.log('Webhook IVR recibido:', { flowId, CallSid, From, To, CallStatus });
+
+      // Crear o obtener registro de llamada
+      let call = await IVRService.getCallByCallSid(CallSid);
+      
+      if (!call) {
+        call = await IVRService.createCall({
+          flow_id: flowId,
+          phone_number: From,
+          call_sid: CallSid,
+          direction: 'inbound',
+          status: 'in_progress'
+        });
+      }
+
+      // Obtener nodo inicial del flujo
+      const initialNode = await IVRService.getInitialNode(flowId);
+
+      if (!initialNode) {
+        return res.status(400).type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Say voice="Polly.Mia" language="es-MX">Lo sentimos, el flujo no está configurado correctamente.</Say>
+            <Hangup/>
+          </Response>
+        `);
+      }
+
+      // Ejecutar nodo inicial
+      const nodeResponse = await IVRService.executeNode(initialNode.id, null, {});
+
+      // Registrar interacción
+      await IVRService.logCallInteraction(call.id, {
+        node_id: initialNode.id,
+        node_type: initialNode.node_type,
+        user_input: null,
+        system_response: JSON.stringify(nodeResponse)
+      });
+
+      // Generar TwiML
+      const twiml = this.generateTwiML(nodeResponse, call.id, flowId);
+
+      res.type('text/xml').send(twiml);
+    } catch (error) {
+      console.error('Error en webhook principal:', error);
+      res.status(500).type('text/xml').send(`
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+          <Say voice="Polly.Mia" language="es-MX">Lo sentimos, ha ocurrido un error.</Say>
+          <Hangup/>
+        </Response>
+      `);
+    }
+  },
+
+  // Manejo de entrada del usuario
+  async handleUserInput(req, res, next) {
+    try {
+      const { flowId } = req.params;
+      const { CallSid, Digits, SpeechResult } = req.body;
+      const { nodeId, callId } = req.query;
+
+      console.log('Input de usuario:', { flowId, CallSid, Digits, SpeechResult, nodeId, callId });
+
+      const userInput = Digits || SpeechResult;
+
+      // Obtener llamada
+      let call = await IVRService.getCallByCallSid(CallSid);
+      if (!call) {
+        call = await IVRService.getCallById(callId);
+      }
+
+      if (!call) {
+        return res.status(400).type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Say voice="Polly.Mia" language="es-MX">Error en la sesión.</Say>
+            <Hangup/>
+          </Response>
+        `);
+      }
+
+      // Obtener nodo actual
+      const currentNode = await IVRService.getNodeById(nodeId);
+      if (!currentNode) {
+        return res.status(400).type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Say voice="Polly.Mia" language="es-MX">Nodo no encontrado.</Say>
+            <Hangup/>
+          </Response>
+        `);
+      }
+
+      // Registrar interacción del usuario
+      await IVRService.logCallInteraction(call.id, {
+        node_id: currentNode.id,
+        node_type: currentNode.node_type,
+        user_input: userInput,
+        system_response: `Usuario ingresó: ${userInput}`
+      });
+
+      // Determinar siguiente nodo
+      const connections = typeof currentNode.connections === 'string' 
+        ? JSON.parse(currentNode.connections) 
+        : currentNode.connections;
+
+      const nextNodeId = connections?.[userInput] || connections?.default;
+
+      if (!nextNodeId) {
+        return res.type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Say voice="Polly.Mia" language="es-MX">Opción no válida. Por favor intente de nuevo.</Say>
+            <Redirect method="POST">/api/ivr/webhook/${flowId}?callId=${call.id}&nodeId=${currentNode.id}</Redirect>
+          </Response>
+        `);
+      }
+
+      // Ejecutar siguiente nodo
+      const nextNode = await IVRService.getNodeById(nextNodeId);
+      const nodeResponse = await IVRService.executeNode(nextNodeId, userInput, { userInput });
+
+      // Registrar respuesta del sistema
+      await IVRService.logCallInteraction(call.id, {
+        node_id: nextNodeId,
+        node_type: nextNode.node_type,
+        user_input: null,
+        system_response: JSON.stringify(nodeResponse)
+      });
+
+      // Generar TwiML
+      const twiml = this.generateTwiML(nodeResponse, call.id, flowId);
+
+      res.type('text/xml').send(twiml);
+    } catch (error) {
+      console.error('Error procesando input de usuario:', error);
+      res.status(500).type('text/xml').send(`
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+          <Say voice="Polly.Mia" language="es-MX">Ha ocurrido un error procesando su respuesta.</Say>
+          <Hangup/>
+        </Response>
+      `);
+    }
+  },
+
   async handleIncomingCall(req, res, next) {
     try {
       const { CallSid, From, To, CallStatus } = req.body;
@@ -597,6 +851,11 @@ const IVRController = {
             ? new Date() 
             : null
         });
+
+        // CONSOLIDAR DATOS AL FINALIZAR LA LLAMADA
+        if (['completed', 'failed', 'no-answer', 'busy'].includes(CallStatus)) {
+          await this.consolidateCallData(call.id);
+        }
       }
 
       res.status(200).send('OK');
@@ -606,7 +865,65 @@ const IVRController = {
     }
   },
 
-  generateTwiML(nodeResponse, callId) {
+  // NUEVA FUNCIÓN: CONSOLIDAR DATOS DE LA LLAMADA
+  async consolidateCallData(callId) {
+    try {
+      const interactions = await IVRService.getCallInteractions(callId);
+      
+      const consolidatedData = {
+        call_id: callId,
+        responses: {},
+        voice_recordings: [],
+        completed_at: new Date(),
+        status: 'finalized'
+      };
+
+      // Procesar todas las interacciones
+      interactions.forEach(interaction => {
+        if (interaction.user_input) {
+          consolidatedData.responses[`node_${interaction.node_id}`] = {
+            type: interaction.node_type,
+            response: interaction.user_input,
+            timestamp: interaction.created_at
+          };
+        }
+        
+        if (interaction.recording_url) {
+          consolidatedData.voice_recordings.push({
+            node_id: interaction.node_id,
+            url: interaction.recording_url,
+            transcript: interaction.user_input,
+            timestamp: interaction.created_at
+          });
+        }
+      });
+
+      // Guardar registro consolidado
+      const consolidationQuery = `
+        INSERT INTO ivr_call_consolidations (call_id, consolidated_data, status)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (call_id) 
+        DO UPDATE SET 
+          consolidated_data = $2, 
+          status = $3, 
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING *
+      `;
+      
+      await pool.query(consolidationQuery, [
+        callId, 
+        JSON.stringify(consolidatedData),
+        'finalized'
+      ]);
+
+      console.log('✅ Datos consolidados para llamada:', callId);
+      
+    } catch (error) {
+      console.error('Error consolidando datos:', error);
+    }
+  },
+
+  generateTwiML(nodeResponse, callId, flowId = null) {
     let twiml = '<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n';
 
     const webhookBaseUrl = process.env.NGROK_URL || process.env.BASE_URL;
@@ -618,8 +935,13 @@ const IVRController = {
           break;
 
         case 'gather':
-          const gatherUrl = `${webhookBaseUrl}/api/ivr/webhook/gather?call_id=${callId}&node_id=${nodeResponse.nodeId}`;
-          twiml += `  <Gather numDigits="${action.numDigits || 1}" timeout="${action.timeout || 5}" action="${gatherUrl}" language="es-MX" input="dtmf speech">\n`;
+          let gatherUrl;
+          if (flowId) {
+            gatherUrl = `${webhookBaseUrl}/api/ivr/webhook/${flowId}/input?callId=${callId}&nodeId=${nodeResponse.nodeId}`;
+          } else {
+            gatherUrl = `${webhookBaseUrl}/api/ivr/webhook/gather?call_id=${callId}&node_id=${nodeResponse.nodeId}`;
+          }
+          twiml += `  <Gather numDigits="${action.numDigits || 1}" timeout="${action.timeout || 5}" action="${gatherUrl}" method="POST">\n`;
           twiml += `    <Say voice="Polly.Mia" language="es-MX">${action.message}</Say>\n`;
           twiml += `  </Gather>\n`;
           break;
@@ -643,6 +965,71 @@ const IVRController = {
 
     twiml += '</Response>';
     return twiml;
+  },
+
+  // Funciones de consolidación
+  async getConsolidations(req, res, next) {
+    try {
+      const filters = req.query;
+      const consolidations = await IVRService.getConsolidations(filters);
+      
+      res.json({
+        success: true,
+        data: consolidations
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getConsolidationByCallId(req, res, next) {
+    try {
+      const { callId } = req.params;
+      const consolidation = await IVRService.getConsolidationByCallId(callId);
+      
+      if (!consolidation) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Consolidación no encontrada' 
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: consolidation
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getConsolidationStats(req, res, next) {
+    try {
+      const filters = req.query;
+      const stats = await IVRService.getConsolidationStats(filters);
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getCollectedDataByField(req, res, next) {
+    try {
+      const { fieldName } = req.params;
+      const filters = req.query;
+      const data = await IVRService.getCollectedDataByField(fieldName, filters);
+      
+      res.json({
+        success: true,
+        data: data
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };
 

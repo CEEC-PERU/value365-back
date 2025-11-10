@@ -1,6 +1,7 @@
 const IVRFlowModel = require('./ivr_flows.model');
 const IVRNodeModel = require('./ivr_nodes.model');
 const IVRCallModel = require('./ivr_calls.model');
+const IVRConsolidationModel = require('./ivr_consolidations.model');
 
 const IVRService = {
   async createFlow(flowData) {
@@ -85,6 +86,31 @@ const IVRService = {
 
   async getCallStats(filters) {
     return await IVRCallModel.getStats(filters);
+  },
+
+  // Funciones de consolidación
+  async createConsolidation(consolidationData) {
+    return await IVRConsolidationModel.create(consolidationData);
+  },
+
+  async getConsolidationByCallId(callId) {
+    return await IVRConsolidationModel.findByCallId(callId);
+  },
+
+  async updateConsolidation(callId, updates) {
+    return await IVRConsolidationModel.update(callId, updates);
+  },
+
+  async getConsolidations(filters) {
+    return await IVRConsolidationModel.findAll(filters);
+  },
+
+  async getConsolidationStats(filters) {
+    return await IVRConsolidationModel.getConsolidationStats(filters);
+  },
+
+  async getCollectedDataByField(fieldName, filters) {
+    return await IVRConsolidationModel.getCollectedDataByField(fieldName, filters);
   },
 
   async executeNode(nodeId, userInput = null, callContext = {}) {
