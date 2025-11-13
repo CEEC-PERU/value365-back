@@ -18,15 +18,21 @@ const slugify = require('slugify');
 
 const createForm = async (req, res, next) => {
     try {
-        const { campaignId } = req.params;
-        const { titulo, descripcion, diseño, configuraciones } = req.body;
+    const { campaignId } = req.params;
+    let { titulo, descripcion, diseño, configuraciones, pantalla_bienvenida, pantalla_despedida } = req.body;
+    console.log('Payload recibido en createForm:', req.body);
 
         if (!campaignId || !titulo) {
             return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
         }
 
-    const baseSlug = slugify(titulo, { lower: true, strict: true });
-    const slug = `${baseSlug}-${uuidv4()}`;
+        // Si pantalla_bienvenida o pantalla_despedida vienen en el root, agrégalas a configuraciones
+        if (!configuraciones || typeof configuraciones !== 'object') configuraciones = {};
+        if (pantalla_bienvenida) configuraciones.pantalla_bienvenida = pantalla_bienvenida;
+        if (pantalla_despedida) configuraciones.pantalla_despedida = pantalla_despedida;
+
+        const baseSlug = slugify(titulo, { lower: true, strict: true });
+        const slug = `${baseSlug}-${uuidv4()}`;
 
         const newForm = await FormService.createForm(campaignId, {
             titulo,
@@ -36,8 +42,8 @@ const createForm = async (req, res, next) => {
             slug
         });
 
-    const shareUrl = `https://value-cx.com/forms/${slug}`;
-    const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
+        const shareUrl = `https://value-cx.com/forms/${slug}`;
+        const embedCode = `<iframe src='${shareUrl}' width='600' height='400' frameborder='0'></iframe>`;
 
         await FormSharesModel.create({
             form_id: newForm.id,
@@ -83,9 +89,16 @@ const getFormById = async (req, res, next) => {
 
 const updateForm = async (req, res, next) => {
     try {
-        const { id } = req.params;
-        const updatedForm = await FormService.updateForm(id, req.body);
-        res.status(200).json({ success: true, data: updatedForm });
+    const { id } = req.params;
+    let { configuraciones, pantalla_bienvenida, pantalla_despedida } = req.body;
+    console.log('Payload recibido en updateForm:', req.body);
+    // Si pantalla_bienvenida o pantalla_despedida vienen en el root, agrégalas a configuraciones
+    if (!configuraciones || typeof configuraciones !== 'object') configuraciones = {};
+    if (pantalla_bienvenida) configuraciones.pantalla_bienvenida = pantalla_bienvenida;
+    if (pantalla_despedida) configuraciones.pantalla_despedida = pantalla_despedida;
+
+    const updatedForm = await FormService.updateForm(id, { ...req.body, configuraciones });
+    res.status(200).json({ success: true, data: updatedForm });
     } catch (error) {
         next(error);
     }
@@ -113,12 +126,32 @@ const getFormBySlug = async (req, res, next) => {
                 validaciones: pregunta.validaciones || {},
                 configuraciones: pregunta.configuraciones || {}
             }));
-            
             // Ordenar preguntas por posicion_orden
             form.preguntas.sort((a, b) => a.posicion_orden - b.posicion_orden);
         }
 
-        res.status(200).json({ success: true, data: form });
+        // Extraer pantalla de bienvenida y despedida si existen en configuraciones
+        let pantalla_bienvenida = null;
+        let pantalla_despedida = null;
+        if (form.configuraciones) {
+            try {
+                const config = typeof form.configuraciones === 'string' ? JSON.parse(form.configuraciones) : form.configuraciones;
+                pantalla_bienvenida = config.pantalla_bienvenida || null;
+                pantalla_despedida = config.pantalla_despedida || null;
+            } catch (e) {
+                pantalla_bienvenida = null;
+                pantalla_despedida = null;
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                ...form,
+                pantalla_bienvenida,
+                pantalla_despedida
+            }
+        });
     } catch (error) {
         next(error);
     }
