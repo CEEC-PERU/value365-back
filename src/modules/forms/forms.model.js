@@ -8,14 +8,14 @@ const FormModel = {
     },
     async create(formData) {
         const { campaign_id, titulo, descripcion, slug } = formData;
-        const diseño = JSON.stringify(formData.diseño || {});
+        const diseno = JSON.stringify(formData.diseno || {});
         const configuraciones = JSON.stringify(formData.configuraciones || {});
 
         const query = `
-            INSERT INTO forms (campaign_id, titulo, descripcion, slug, diseño, configuraciones)
+            INSERT INTO forms (campaign_id, titulo, descripcion, slug, diseno, configuraciones)
             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
         `;
-        const values = [campaign_id, titulo, descripcion, slug, diseño, configuraciones];
+        const values = [campaign_id, titulo, descripcion, slug, diseno, configuraciones];
         const { rows } = await pool.query(query, values);
 
         return rows[0];
@@ -40,11 +40,11 @@ const FormModel = {
     },
 
     async update(formId, dataToUpdate) {
-    const fields = Object.keys(dataToUpdate);
-    const setString = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+        const fields = Object.keys(dataToUpdate);
+        const setString = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
 
         const values = fields.map(field => {
-            if (field === 'diseño' && typeof dataToUpdate[field] === 'object') {
+            if (field === 'diseno' && typeof dataToUpdate[field] === 'object') {
                 return JSON.stringify(dataToUpdate[field]);
             }
             return dataToUpdate[field];

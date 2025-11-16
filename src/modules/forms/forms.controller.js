@@ -19,8 +19,11 @@ const slugify = require('slugify');
 const createForm = async (req, res, next) => {
     try {
     const { campaignId } = req.params;
-    let { titulo, descripcion, diseño, configuraciones, pantalla_bienvenida, pantalla_despedida } = req.body;
+    let { titulo, descripcion, diseno, configuraciones, pantalla_bienvenida, pantalla_despedida } = req.body;
     console.log('Payload recibido en createForm:', req.body);
+    if (diseno) {
+        console.log('Diseño recibido en createForm:', diseno);
+    }
 
         if (!campaignId || !titulo) {
             return res.status(400).json({ success: false, message: 'El ID de la campaña y el título son obligatorios.' });
@@ -37,7 +40,7 @@ const createForm = async (req, res, next) => {
         const newForm = await FormService.createForm(campaignId, {
             titulo,
             descripcion,
-            diseño,
+            diseno,
             configuraciones,
             slug
         });
@@ -81,6 +84,9 @@ const getFormById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const form = await FormService.getFormById(id);
+        if (form && form.diseno) {
+            console.log('Diseño retornado en getFormById:', form.diseno);
+        }
         res.status(200).json({ success: true, data: form });
     } catch (error) {
         next(error);
@@ -92,6 +98,9 @@ const updateForm = async (req, res, next) => {
     const { id } = req.params;
     let { configuraciones, pantalla_bienvenida, pantalla_despedida } = req.body;
     console.log('Payload recibido en updateForm:', req.body);
+    if (req.body.diseno) {
+        console.log('Diseño recibido en updateForm:', req.body.diseno);
+    }
     // Si pantalla_bienvenida o pantalla_despedida vienen en el root, agrégalas a configuraciones
     if (!configuraciones || typeof configuraciones !== 'object') configuraciones = {};
     if (pantalla_bienvenida) configuraciones.pantalla_bienvenida = pantalla_bienvenida;
@@ -142,6 +151,10 @@ const getFormBySlug = async (req, res, next) => {
                 pantalla_bienvenida = null;
                 pantalla_despedida = null;
             }
+        }
+
+        if (form && form.diseno) {
+            console.log('Diseño retornado en getFormBySlug:', form.diseno);
         }
 
         res.status(200).json({

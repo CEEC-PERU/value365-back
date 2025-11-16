@@ -38,7 +38,11 @@ const FormService = {
                 formData.slug = `${baseSlug}-${uuidv4()}`;
             }
 
-            return await FormModel.create(formData);
+            // Usar solo 'diseno' en el modelo
+            return await FormModel.create({
+                ...formData,
+                diseno: formData.diseno || formData.diseño || {}
+            });
         } catch (error) {
             console.error('Error en createForm:', error);
             throw error;
@@ -122,9 +126,9 @@ const FormService = {
             if (formData.descripcion) dataToUpdate.descripcion = formData.descripcion;
             if (formData.estado) dataToUpdate.estado = formData.estado;
 
-            if (formData.diseño) {
-                const existingDiseño = existingForm.diseño || {};
-                dataToUpdate.diseño = mergeDeep(existingDiseño, formData.diseño);
+            if (formData.diseno) {
+                const existingDiseno = existingForm.diseno || {};
+                dataToUpdate.diseno = mergeDeep(existingDiseno, formData.diseno);
             }
 
             if (formData.configuraciones) {
