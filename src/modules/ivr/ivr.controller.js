@@ -3,6 +3,39 @@ const IVRConsolidationModel = require('./ivr_consolidations.model');
 const twilio = require('twilio');
 
 const IVRController = {
+    // Endpoint para iniciar llamada IVR desde frontend
+    async iniciarLlamadaDesdeFrontend(req, res) {
+      try {
+        const { to, flowId, nombreUsuario } = req.body;
+        if (!to || !flowId) {
+          return res.status(400).json({ error: 'Faltan datos requeridos' });
+        }
+
+        const twilioClient = twilio(
+          process.env.TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
+        const call = await twilioClient.calls.create({
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to,
+          url: `${process.env.BASE_URL}/api/ivr/webhook/${flowId}?usuario=${encodeURIComponent(nombreUsuario || '')}`,
+          method: 'POST'
+        });
+
+        // Guardar la llamada en la base de datos
+        const callRecord = await IVRService.createCall({
+          flow_id: flowId,
+          phone_number: to,
+          call_sid: call.sid,
+          status: 'initiated',
+          nombre_usuario: nombreUsuario || null
+        });
+
+        res.json({ success: true, call_sid: call.sid, call_id: callRecord.id });
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    },
   // Health check endpoint público
   async healthCheck(req, res, next) {
     try {
