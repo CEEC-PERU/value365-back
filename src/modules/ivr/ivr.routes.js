@@ -30,6 +30,9 @@ router.put('/calls/:id/status', verifyToken, IVRController.updateCallStatus);
 router.get('/calls/:id/interactions', verifyToken, IVRController.getCallInteractions);
 router.get('/stats', verifyToken, IVRController.getCallStats);
 
+
+// Endpoint personalizado para frontend (sin autenticación)
+router.post('/llamadas/iniciar', IVRController.iniciarLlamadaDesdeFrontend);
 router.post('/iniciar-llamada', verifyToken, IVRController.iniciarLlamada);
 
 router.post('/webhook/incoming', IVRController.handleIncomingCall);
