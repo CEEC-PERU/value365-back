@@ -1,6 +1,8 @@
 const IVRService = require('./ivr.service');
 const IVRConsolidationModel = require('./ivr_consolidations.model');
 const twilio = require('twilio');
+const express = require('express');
+const IVRNodesModel = require('./ivr_nodes.model');
 
 const IVRController = {
   // Health check endpoint público
@@ -1029,6 +1031,52 @@ const IVRController = {
       });
     } catch (error) {
       next(error);
+    }
+  },
+
+  // Rutas para nodos de IVR
+  async createNode(req, res, next) {
+    try {
+      const nodeData = req.body;
+      const newNode = await IVRNodesModel.createNode(nodeData);
+      res.status(201).json(newNode);
+    } catch (error) {
+      console.error('Error creating IVR node:', error);
+      res.status(500).json({ error: 'Failed to create IVR node' });
+    }
+  },
+
+  async updateNode(req, res, next) {
+    try {
+      const nodeId = req.params.id;
+      const nodeData = req.body;
+      const updatedNode = await IVRNodesModel.updateNode(nodeId, nodeData);
+      res.status(200).json(updatedNode);
+    } catch (error) {
+      console.error('Error updating IVR node:', error);
+      res.status(500).json({ error: 'Failed to update IVR node' });
+    }
+  },
+
+  async getNodeById(req, res, next) {
+    try {
+      const nodeId = req.params.id;
+      const node = await IVRNodesModel.getNodeById(nodeId);
+      res.status(200).json(node);
+    } catch (error) {
+      console.error('Error fetching IVR node:', error);
+      res.status(500).json({ error: 'Failed to fetch IVR node' });
+    }
+  },
+
+  async getNodesByFlowId(req, res, next) {
+    try {
+      const flowId = req.params.flowId;
+      const nodes = await IVRNodesModel.getNodesByFlowId(flowId);
+      res.status(200).json(nodes);
+    } catch (error) {
+      console.error('Error fetching IVR nodes:', error);
+      res.status(500).json({ error: 'Failed to fetch IVR nodes' });
     }
   }
 };

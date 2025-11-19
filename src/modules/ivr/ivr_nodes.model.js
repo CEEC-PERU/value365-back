@@ -12,106 +12,51 @@ const NODE_TYPES = {
   SERVICIO: 'servicio'
 };
 
-const IVRNodeModel = {
+const IVRNodesModel = {
   NODE_TYPES,
 
-  async create({ flow_id, node_type, node_name, position_x = 0, position_y = 0, config = {}, connections = {} }) {
+  async createNode(nodeData) {
+    const { flow_id, name, type, acciones_llamadas } = nodeData;
     const query = `
-      INSERT INTO ivr_nodes (flow_id, node_type, node_name, position_x, position_y, config, connections)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
+      INSERT INTO ivr_nodes (flow_id, name, type, acciones_llamadas)
+      VALUES ($1, $2, $3, $4) RETURNING *;
     `;
-    const values = [flow_id, node_type, node_name, position_x, position_y, JSON.stringify(config), JSON.stringify(connections)];
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    const values = [flow_id, name, type, JSON.stringify(acciones_llamadas || {})];
+    const { rows } = await pool.query(query, values);
+    return rows[0];
   },
 
-  async findByFlowId(flowId) {
-    const query = 'SELECT * FROM ivr_nodes WHERE flow_id = $1 ORDER BY position';
-    const result = await pool.query(query, [flowId]);
-    return result.rows;
-  },
-
-  async findById(id) {
-    const query = 'SELECT * FROM ivr_nodes WHERE id = $1';
-    const result = await pool.query(query, [id]);
-    return result.rows[0];
-  },
-
-  async update(id, updates) {
-    const allowedFields = ['node_name', 'position_x', 'position_y', 'config', 'connections'];
-    const updateFields = [];
-    const params = [];
-    let paramCounter = 1;
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (allowedFields.includes(key)) {
-        if (key === 'config' || key === 'connections') {
-          updateFields.push(`${key} = $${paramCounter++}`);
-          params.push(JSON.stringify(value));
-        } else {
-          updateFields.push(`${key} = $${paramCounter++}`);
-          params.push(value);
-        }
+  async updateNode(nodeId, nodeData) {
+    const fields = Object.keys(nodeData);
+    const setString = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+    const values = fields.map(field => {
+      if (field === 'acciones_llamadas' && typeof nodeData[field] === 'object') {
+        return JSON.stringify(nodeData[field]);
       }
-    }
+      return nodeData[field];
+    });
 
-    if (updateFields.length === 0) {
-      return this.findById(id);
-    }
-
-    params.push(id);
     const query = `
-      UPDATE ivr_nodes 
-      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramCounter}
-      RETURNING *
+      UPDATE ivr_nodes
+      SET ${setString}
+      WHERE id = $${fields.length + 1}
+      RETURNING *;
     `;
-
-    const result = await pool.query(query, params);
-    return result.rows[0];
+    const { rows } = await pool.query(query, [...values, nodeId]);
+    return rows[0];
   },
 
-  async delete(id) {
-    const query = 'DELETE FROM ivr_nodes WHERE id = $1 RETURNING *';
-    const result = await pool.query(query, [id]);
-    return result.rows[0];
+  async getNodeById(nodeId) {
+    const query = 'SELECT * FROM ivr_nodes WHERE id = $1;';
+    const { rows } = await pool.query(query, [nodeId]);
+    return rows[0];
   },
 
-  async bulkUpdate(nodes) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      const updatedNodes = [];
-      for (const node of nodes) {
-        const { id, ...updates } = node;
-        const result = await this.update(id, updates);
-        updatedNodes.push(result);
-      }
-
-      await client.query('COMMIT');
-      return updatedNodes;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
-  },
-
-  async findHomeNode(flowId) {
-    const query = 'SELECT * FROM ivr_nodes WHERE flow_id = $1 AND node_type = \'home\' LIMIT 1';
-    const result = await pool.query(query, [flowId]);
-    
-    if (result.rows.length > 0) {
-      return result.rows[0];
-    }
-
-    const fallbackQuery = 'SELECT * FROM ivr_nodes WHERE flow_id = $1 ORDER BY position LIMIT 1';
-    const fallbackResult = await pool.query(fallbackQuery, [flowId]);
-    return fallbackResult.rows[0];
+  async getNodesByFlowId(flowId) {
+    const query = 'SELECT * FROM ivr_nodes WHERE flow_id = $1;';
+    const { rows } = await pool.query(query, [flowId]);
+    return rows;
   }
 };
 
-module.exports = IVRNodeModel;
+module.exports = IVRNodesModel;

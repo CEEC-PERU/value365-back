@@ -249,6 +249,30 @@ const IVRService = {
     const nodes = await IVRNodeModel.findByFlowId(flowId);
     const homeNode = nodes.find(n => n.node_type === 'home' || n.position === 0);
     return homeNode || nodes[0];
+  },
+
+  async processNodeActions(nodeId) {
+    try {
+      const node = await IVRNodeModel.getNodeById(nodeId);
+      if (!node) {
+        throw new Error('Node not found');
+      }
+
+      const acciones = node.acciones_llamadas;
+      if (!acciones || Object.keys(acciones).length === 0) {
+        console.log('No actions to process for this node.');
+        return;
+      }
+
+      // Example: Process actions (this logic can be extended based on requirements)
+      for (const [action, params] of Object.entries(acciones)) {
+        console.log(`Processing action: ${action} with params:`, params);
+        // Add specific logic for each action type here
+      }
+    } catch (error) {
+      console.error('Error processing node actions:', error);
+      throw error;
+    }
   }
 };
 
