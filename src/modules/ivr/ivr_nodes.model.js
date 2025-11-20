@@ -16,12 +16,20 @@ const IVRNodesModel = {
   NODE_TYPES,
 
   async createNode(nodeData) {
-    const { flow_id, name, type, acciones_llamadas } = nodeData;
+    const { flow_id, node_name, node_type, acciones_llamadas, config, connections, position } = nodeData;
     const query = `
-      INSERT INTO ivr_nodes (flow_id, name, type, acciones_llamadas)
-      VALUES ($1, $2, $3, $4) RETURNING *;
+      INSERT INTO ivr_nodes (flow_id, node_name, node_type, acciones_llamadas, config, connections, position)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
     `;
-    const values = [flow_id, name, type, JSON.stringify(acciones_llamadas || {})];
+    const values = [
+      flow_id,
+      node_name,
+      node_type,
+      JSON.stringify(acciones_llamadas || {}),
+      JSON.stringify(config || {}),
+      JSON.stringify(connections || {}),
+      position || 0
+    ];
     const { rows } = await pool.query(query, values);
     return rows[0];
   },
